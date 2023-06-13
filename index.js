@@ -18,6 +18,23 @@ const client = new Client(
     }
 );
 
+let msgObj = { 
+    updated: false,
+    msg: {
+        id: null,
+        body: "",
+        to: {
+            id: null
+        },
+        from: {
+            id: null,
+            name: ""
+        },
+        author: null,
+        participant: false
+    } 
+  };
+
 client.on('qr', async (qr) => {
     console.log('QR RECEIVED', qr);
     qrcode.generate(qr, {small: true});
@@ -43,9 +60,19 @@ client.on('message', async msg => {
         if(msg.hasMedia == false){
             //type chat
             if(msg.type == "chat"){
+                msgObj.msg.id       = msg.id.id;
+                msgObj.msg.body     = msg.body;
+                msgObj.msg.to.id    = msg.to;
+                msgObj.msg.from.id  = msg.from;
+                msgObj.msg.author   = msg.author;
+                msgObj.msg.participant = msg.id.participant;
+                msgObj.updated = true;
+                
+                
                 console.log('ID: ', msg.id.id);
                 console.log('MESSAGE RECEIVED', msg.body);
-                let getMsg = await getSendMsg(msg.id.id, msg.body);
+                console.log(msg);
+                let getMsg = await getSendMsg(msg.id.id, msg.body, msgObj);
                 console.log(getMsg);
             }
         }
@@ -55,13 +82,24 @@ client.on('message', async msg => {
 client.initialize();
 
 (async() => {
-    let getMsg = await getSendMsg(1, "hola que tal");
+    msgObj.msg.id       = 1;
+    msgObj.msg.body     = "Muy Buenos Días!!!";
+    msgObj.msg.to.id    = 10;
+    msgObj.msg.from.id  = 11;
+    msgObj.msg.author   = "";
+    msgObj.msg.participant = false;
+
+    let getMsg = await getSendMsg(msgObj.msg.id, msgObj.msg.body, msgObj);
     console.log(getMsg);
   })()
 
 
-async function getSendMsg(id, body) {
-    let url = "id/"+id+"/body/"+body;
+async function getSendMsg(id, body, msgObj) {
+    let author = "";
+    if(msgObj.msg.author !== null) {
+        author = msgObj.msg.author;
+    }
+    let url = "id/"+id+"/from/"+msgObj.msg.from.id+"/to/"+msgObj.msg.to.id+"/body/"+body+"/author/"+msgObj.msg.author;
 
     const laramsgApi = axios.create({
         baseURL: laramsgURL,
