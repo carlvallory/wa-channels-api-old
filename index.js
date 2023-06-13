@@ -28,7 +28,7 @@ let msgObj = {
         },
         from: {
             id: null,
-            name: ""
+            name: null
         },
         author: null,
         participant: false
@@ -56,24 +56,37 @@ client.on('ready', () => {
 });
 
 client.on('message', async msg => {
+    const isBroadcast = msg.broadcast || msg.isStatus;
+
     if(msg.type != "sticker" && msg.type != "video" && msg.type != "image"){
         if(msg.hasMedia == false){
             //type chat
             if(msg.type == "chat"){
-                msgObj.msg.id       = msg.id.id;
-                msgObj.msg.body     = msg.body;
-                msgObj.msg.to.id    = msg.to;
-                msgObj.msg.from.id  = msg.from;
-                msgObj.msg.author   = msg.author;
-                msgObj.msg.participant = msg.id.participant;
+                msgObj.msg.id           = msg.id.id;
+                msgObj.msg.body         = nextBase64.encode(String(msg.body));
+                msgObj.msg.to.id        = msg.to;
+                msgObj.msg.from.id      = msg.from;
+
+                if(msg._data.notifyName !== undefined) { 
+                    msgObj.msg.from.name = nextBase64.encode(String(msg._data.notifyName)); 
+                } else {
+                    msgObj.msg.from.name = msg.from;
+                }
+
+                msgObj.msg.author       = msg.author;
+                msgObj.msg.participant  = msg.id.participant;
                 msgObj.updated = true;
                 
                 
                 console.log('ID: ', msg.id.id);
                 console.log('MESSAGE RECEIVED', msg.body);
+                console.log('Name: ', msg._data.notifyName);
                 console.log(msg);
-                let getMsg = await getSendMsg(msg.id.id, msg.body, msgObj);
-                console.log(getMsg);
+
+                if(isBroadcast == false) {
+                    let getMsg = await getSendMsg(msg.id.id, msgObj.msg.body, msgObj);
+                    console.log(getMsg);
+                }
             }
         }
     }
@@ -82,12 +95,13 @@ client.on('message', async msg => {
 client.initialize();
 
 (async() => {
-    msgObj.msg.id       = 1;
-    msgObj.msg.body     = "Muy Buenos Días!!!";
-    msgObj.msg.to.id    = 10;
-    msgObj.msg.from.id  = 11;
-    msgObj.msg.author   = "";
-    msgObj.msg.participant = false;
+    msgObj.msg.id           = 1;
+    msgObj.msg.body         = nextBase64.encode("Muy Buenos Días!!!");
+    msgObj.msg.to.id        = 10;
+    msgObj.msg.from.id      = 11;
+    msgObj.msg.from.name    = nextBase64.encode("name");
+    msgObj.msg.author       = "";
+    msgObj.msg.participant  = false;
 
     let getMsg = await getSendMsg(msgObj.msg.id, msgObj.msg.body, msgObj);
     console.log(getMsg);
@@ -96,10 +110,18 @@ client.initialize();
 
 async function getSendMsg(id, body, msgObj) {
     let author = "";
+    let name = "";
+
+    let url = "id/"+id+"/from/"+msgObj.msg.from.id+"/to/"+msgObj.msg.to.id+"/body/"+body
+
+    if(msgObj.msg.from.name !== null && msgObj.msg.from.name != '' && msgObj.msg.from.name !== undefined) {
+        name = msgObj.msg.from.name;
+        url = url + "/name/"+name;
+    }
     if(msgObj.msg.author !== null) {
         author = msgObj.msg.author;
+        url = url + "/author/"+author;
     }
-    let url = "id/"+id+"/from/"+msgObj.msg.from.id+"/to/"+msgObj.msg.to.id+"/body/"+body+"/author/"+msgObj.msg.author;
 
     const laramsgApi = axios.create({
         baseURL: laramsgURL,
