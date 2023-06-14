@@ -68,10 +68,27 @@ client.on('message', async msg => {
                 msgObj.msg.from.id      = msg.from;
 
                 if(msg._data.notifyName !== undefined) { 
-                    msgObj.msg.from.name = nextBase64.encode(String(msg._data.notifyName)); 
+                    msgObj.msg.from.name = nextBase64.encode(String(msg._data.notifyName));
                 } else {
                     msgObj.msg.from.name = msg.from;
                 }
+
+                let mbi = 0;
+                let mfni = 0;
+
+                while(msgObj.msg.body.includes("/") === true) {
+                    mbi++;
+                    msgObj.msg.body = nextBase64.encode(String(msgObj.msg.body));
+                }
+
+                msgObj.msg.body = msgObj.msg.body + "_" + mbi;
+
+                while(msgObj.msg.from.name.includes("/") === true) {
+                    mfni++;
+                    msgObj.msg.from.name = nextBase64.encode(String(msgObj.msg.from.name));
+                }
+
+                msgObj.msg.from.name = msgObj.msg.from.name + "_" + mfni;
 
                 msgObj.msg.author       = msg.author;
                 msgObj.msg.participant  = msg.id.participant;
@@ -81,7 +98,7 @@ client.on('message', async msg => {
                 console.log('ID: ', msg.id.id);
                 console.log('MESSAGE RECEIVED', msg.body);
                 console.log('Name: ', msg._data.notifyName);
-                console.log(msg);
+                //console.log(msg);
 
                 if(isBroadcast == false) {
                     let getMsg = await getSendMsg(msg.id.id, msgObj.msg.body, msgObj);
