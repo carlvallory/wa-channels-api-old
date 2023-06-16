@@ -58,7 +58,7 @@ client.on('ready', () => {
 client.on('message', async msg => {
     const isBroadcast = msg.broadcast || msg.isStatus;
 
-    if(msg.type != "sticker" && msg.type != "video" && msg.type != "image"){
+    if(msg.type != "sticker" && msg.type != "video" && msg.type != "image"){ //permitir imagenes
         if(msg.hasMedia == false){
             //type chat
             if(msg.type == "chat"){
@@ -73,8 +73,8 @@ client.on('message', async msg => {
                     msgObj.msg.from.name = msg.from;
                 }
 
-                let mbi = 0;
-                let mfni = 0;
+                let mbi = 1;
+                let mfni = 1;
 
                 while(msgObj.msg.body.includes("/") === true) {
                     mbi++;
@@ -114,9 +114,11 @@ client.initialize();
 (async() => {
     msgObj.msg.id           = 1;
     msgObj.msg.body         = nextBase64.encode("Muy Buenos Días!!!");
+    msgObj.msg.body         = msgObj.msg.body + "_1";
     msgObj.msg.to.id        = 10;
     msgObj.msg.from.id      = 11;
     msgObj.msg.from.name    = nextBase64.encode("name");
+    msgObj.msg.from.name    = msgObj.msg.from.name + "_1";
     msgObj.msg.author       = "";
     msgObj.msg.participant  = false;
 
@@ -135,7 +137,7 @@ async function getSendMsg(id, body, msgObj) {
         name = msgObj.msg.from.name;
         url = url + "/name/"+name;
     }
-    if(msgObj.msg.author !== null) {
+    if(msgObj.msg.author !== undefined) {
         author = msgObj.msg.author;
         url = url + "/author/"+author;
     }
