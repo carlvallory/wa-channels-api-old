@@ -305,8 +305,12 @@ const server = http.createServer((req, res) => {
                 var q = url.parse(req.url, true).query;
                 var user = q.user;
                 var logout = setLogout(user);
+
+                res.end(JSON.stringify({ status: 200, message: 'Log Out Success', data: user }));
             } else {
-                console.error("Whatsapp Client not connected")
+                console.error("Whatsapp Client not connected");
+
+                res.end(JSON.stringify({ status: 500, message: 'Client State Null', data: user }));
             }
         });
     }
