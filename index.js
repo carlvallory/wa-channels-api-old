@@ -153,7 +153,9 @@ client.on('message', async msg => {
 
         if(msg.hasMedia !== false){
             if(msg.type=="image") {
-                console.log(msg);
+                if(msg.id.remote != 'status@broadcast') {
+                    console.log(msg);
+                }
             }
         }
     }
