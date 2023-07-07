@@ -9,7 +9,7 @@ const API_KEY = process.env.API_KEY || "";
 const RECEIVER_URL = process.env.WA_RECEIVER_URL;
 const RECEIVER_PATH = process.env.WA_RECEIVER_PATH;
 const HOSTNAME = process.env.HTTP_HOSTNAME;
-const PORT = process.env.HTTP_PORT || 3000;
+const PORT = process.env.HTTP_PORT || 3087;
 
 const laramsgURL = "http://phplaravel-1040427-3658816.cloudwaysapps.com/msg";
 
@@ -71,7 +71,7 @@ client.on('ready', async () => {
     msgObj.msg.to.user  = client.info.wid.user;
     msgObj.msg.to.name  = client.info.wid.name;
 
-    let getStatus = await getSendLogin(String(msgObj.msg.id));
+    let getStatus = await getSendLogin(String(msgObj.msg.to.user));
 
     console.log(client.info.wid.user);
     console.log('Client is Ready');
@@ -141,13 +141,19 @@ client.on('message', async msg => {
                 
                 console.log('ID: ', msg.id.id);
                 console.log('MESSAGE RECEIVED', msg.body);
-                console.log(msg);
+                //console.log(msg);
 
                 if(isBroadcast == false) {
                     let getMsg = await getSendMsg(msg.id.id, msgObj.msg.body.text, msgObj);
                     let getStatus = await getSendStatus(String(msgObj.msg.id));
                     console.log(getMsg);
                 }
+            }
+        }
+
+        if(msg.hasMedia !== false){
+            if(msg.type=="image") {
+                console.log(msg);
             }
         }
     }
