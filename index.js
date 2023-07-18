@@ -165,6 +165,11 @@ client.on('message', async msg => {
         if(msg.hasMedia !== false){
             if(msg.type=="image") {
                 if(msg.id.remote != 'status@broadcast') {
+                    if(isBroadcast == false) {
+                        let getMsg = await getSendMsg(msg.id.id, msgObj.msg.body.text, msgObj);
+                        let getStatus = await getSendStatus(String(msgObj.msg.id));
+                        console.log(getMsg);
+                    }
                     console.log(msg);
                 }
             }
