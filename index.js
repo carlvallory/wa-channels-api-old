@@ -93,8 +93,11 @@ client.on('message', async msg => {
                 msgObj.msg.from.id      = msg.from;
 
                 if(msg.type=="image") {
-
+                    msgObj.msg.body.image = nextBase64.encode(String(profilePicture));
+                } else {
+                    msgObj.msg.body.image = null;
                 }
+
                 if(msg._data.notifyName !== undefined) { 
                     msgObj.msg.from.name = nextBase64.encode(String(msg._data.notifyName));
                 } else {
@@ -108,6 +111,7 @@ client.on('message', async msg => {
                 }
 
                 let mbi = 1;
+                let mii = 1;
                 let mfni = 1;
                 let mppi = 1;
 
@@ -117,6 +121,14 @@ client.on('message', async msg => {
                 }
 
                 msgObj.msg.body.text = msgObj.msg.body.text + "_" + mbi;
+
+                if(msgObj.msg.body.image != null) {
+                    while(msgObj.msg.body.image.includes("/") === true) {
+                        mii++;
+                        msgObj.msg.body.image = nextBase64.encode(String(msgObj.msg.body.image));
+                    }
+                    msgObj.msg.body.image = msgObj.msg.body.image + "_" + mii;
+                }
 
                 while(msgObj.msg.from.name.includes("/") === true) {
                     mfni++;
@@ -130,7 +142,6 @@ client.on('message', async msg => {
                         mppi++;
                         msgObj.msg.profile.picture = nextBase64.encode(String(msgObj.msg.profile.picture));
                     }
-
                     msgObj.msg.profile.picture = msgObj.msg.profile.picture + "_" + mppi;
                 }
 
@@ -191,16 +202,21 @@ async function getSendMsg(id, body, msgObj) {
     let author = "";
     let name = "";
     let profilePicture = null;
+    let image = null;
 
     let url = "id/"+id+"/from/"+msgObj.msg.from.id+"/to/"+msgObj.msg.to.id+"/body/"+body
 
+    if(msgObj.msg.body.image !== null && msgObj.msg.body.image != '' && msgObj.msg.body.image !== undefined) {
+        image = msgObj.msg.body.image;
+        url = url + "/image/"+image;
+    }
     if(msgObj.msg.from.name !== null && msgObj.msg.from.name != '' && msgObj.msg.from.name !== undefined) {
         name = msgObj.msg.from.name;
         url = url + "/name/"+name;
     }
     if(msgObj.msg.profile.picture !== null && msgObj.msg.profile.picture != '' && msgObj.msg.profile.picture !== undefined) {
         profilePicture = msgObj.msg.profile.picture;
-        url = url + "/profilepicture/"+profilePicture;
+        url = url + "/picture/"+profilePicture;
     }
     if(msgObj.msg.author !== undefined) {
         author = msgObj.msg.author;
