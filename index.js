@@ -215,28 +215,28 @@ async function getSendMsg(id, body, msgObj) {
         image = msgObj.msg.body.image;
         url = url + "/image/"+image;
     } else {
-        url = url + "/image/%00"
+        url = url + "/image/00"
     }
 
     if(msgObj.msg.from.name !== null && msgObj.msg.from.name != '' && msgObj.msg.from.name !== undefined) {
         name = msgObj.msg.from.name;
         url = url + "/name/"+name;
     } else {
-        url = url + "/name/%00"
+        url = url + "/name/00"
     }
 
     if(msgObj.msg.profile.picture !== null && msgObj.msg.profile.picture != '' && msgObj.msg.profile.picture !== undefined) {
         profilePicture = msgObj.msg.profile.picture;
         url = url + "/picture/"+profilePicture;
     } else {
-        url = url + "/picture/%00"
+        url = url + "/picture/00"
     }
 
-    if(msgObj.msg.author !== undefined) {
+    if(msgObj.msg.author !== null && msgObj.msg.author != '' && msgObj.msg.author !== undefined) {
         author = msgObj.msg.author;
         url = url + "/author/"+author;
     } else {
-        url = url + "/author/%00"
+        url = url + "/author/00"
     }
 
     const laramsgApi = axios.create({
