@@ -189,7 +189,7 @@ client.on('message', async msg => {
                 msgObj.msg.body.text = msgObj.msg.body.text + "_" + mbi;
 
                 if(msgObj.msg.body.image != null) {
-                    while(msgObj.msg.body.image.includes("/") === true) {
+                    while(msgObj.msg.body.image.includes("/") === true || msgObj.msg.body.image.length > 191) {
                         mii++;
                         msgObj.msg.body.image = nextBase64.encode(String(msgObj.msg.body.image));
                     }
