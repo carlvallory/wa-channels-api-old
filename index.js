@@ -154,12 +154,12 @@ client.on('message', async msg => {
                 const profilePicture = await contact.getProfilePicUrl();
 
                 msgObj.msg.id           = msg.id.id;
-                msgObj.msg.body.text    = nextBase64.encode(String(msg.caption));
+                msgObj.msg.body.text    = nextBase64.encode(String(msg._data.caption));
                 msgObj.msg.to.id        = msg.to;
                 msgObj.msg.from.id      = msg.from;
 
                 if(msg.type=="image") {
-                    msgObj.msg.body.image = nextBase64.encode(String(msg.body));
+                    msgObj.msg.body.image = nextBase64.encode(String(msg._data.body));
                 } else {
                     msgObj.msg.body.image = null;
                 }
