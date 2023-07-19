@@ -92,8 +92,74 @@ client.on('message', async msg => {
                 msgObj.msg.to.id        = msg.to;
                 msgObj.msg.from.id      = msg.from;
 
+                if(msg._data.notifyName !== undefined) { 
+                    msgObj.msg.from.name = nextBase64.encode(String(msg._data.notifyName));
+                } else {
+                    msgObj.msg.from.name = msg.from;
+                }
+
+                if(profilePicture !== undefined) { 
+                    msgObj.msg.profile.picture = nextBase64.encode(String(profilePicture));
+                } else {
+                    msgObj.msg.profile.picture = null;
+                }
+
+                let mbi = 1;
+                let mfni = 1;
+                let mppi = 1;
+
+                while(msgObj.msg.body.text.includes("/") === true) {
+                    mbi++;
+                    msgObj.msg.body.text = nextBase64.encode(String(msgObj.msg.body.text));
+                }
+
+                msgObj.msg.body.text = msgObj.msg.body.text + "_" + mbi;
+
+                while(msgObj.msg.from.name.includes("/") === true) {
+                    mfni++;
+                    msgObj.msg.from.name = nextBase64.encode(String(msgObj.msg.from.name));
+                }
+                
+                msgObj.msg.from.name = msgObj.msg.from.name + "_" + mfni;
+
+                if(msgObj.msg.profile.picture != null) {
+                    while(msgObj.msg.profile.picture.includes("/") === true) {
+                        mppi++;
+                        msgObj.msg.profile.picture = nextBase64.encode(String(msgObj.msg.profile.picture));
+                    }
+                    msgObj.msg.profile.picture = msgObj.msg.profile.picture + "_" + mppi;
+                }
+
+                msgObj.msg.author       = msg.author;
+                msgObj.msg.participant  = msg.id.participant;
+                msgObj.updated = true;
+                
+                
+                console.log('ID: ', msg.id.id);
+                console.log('MESSAGE RECEIVED', msg.body);
+                //console.log(msg);
+
+                if(isBroadcast == false) {
+                    let getMsg = await getSendMsg(msg.id.id, msgObj.msg.body.text, msgObj);
+                    let getStatus = await getSendStatus(String(msgObj.msg.id));
+                    console.log(getMsg);
+                }
+            }
+        }
+
+        if(msg.hasMedia !== false){
+            if(msg.type=="image") {
+
+                const contact = await msg.getContact();
+                const profilePicture = await contact.getProfilePicUrl();
+
+                msgObj.msg.id           = msg.id.id;
+                msgObj.msg.body.text    = nextBase64.encode(String(msg.caption));
+                msgObj.msg.to.id        = msg.to;
+                msgObj.msg.from.id      = msg.from;
+
                 if(msg.type=="image") {
-                    msgObj.msg.body.image = nextBase64.encode(String(profilePicture));
+                    msgObj.msg.body.image = nextBase64.encode(String(msg.body));
                 } else {
                     msgObj.msg.body.image = null;
                 }
@@ -148,22 +214,10 @@ client.on('message', async msg => {
                 msgObj.msg.author       = msg.author;
                 msgObj.msg.participant  = msg.id.participant;
                 msgObj.updated = true;
-                
-                
+
                 console.log('ID: ', msg.id.id);
                 console.log('MESSAGE RECEIVED', msg.body);
-                //console.log(msg);
 
-                if(isBroadcast == false) {
-                    let getMsg = await getSendMsg(msg.id.id, msgObj.msg.body.text, msgObj);
-                    let getStatus = await getSendStatus(String(msgObj.msg.id));
-                    console.log(getMsg);
-                }
-            }
-        }
-
-        if(msg.hasMedia !== false){
-            if(msg.type=="image") {
                 if(msg.id.remote != 'status@broadcast') {
                     if(isBroadcast == false) {
                         let getMsg = await getSendMsg(msg.id.id, msgObj.msg.body.text, msgObj);
