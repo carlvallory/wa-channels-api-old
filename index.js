@@ -5,6 +5,8 @@ const url = require('url');
 const { Client, NoAuth } = require('whatsapp-web.js');
 const nextBase64 = require('next-base64');
 const querystring = require('querystring');
+const FormData = require('form-data');
+
 
 const API_KEY = process.env.API_KEY || "";
 const RECEIVER_URL = process.env.WA_RECEIVER_URL;
@@ -48,7 +50,8 @@ let msgObj = {
         },
         author: null,
         participant: false
-    }, 
+    },
+    data: null,
     params: null
   };
 
@@ -81,6 +84,7 @@ client.on('ready', async () => {
 
 client.on('message', async msg => {
     const isBroadcast = msg.broadcast || msg.isStatus;
+    let data = new FormData();
 
     if(msg.type != "sticker" && msg.type != "video"){ //permitir imagenes // && msg.type != "image"
         if(msg.hasMedia == false){
@@ -161,6 +165,7 @@ client.on('message', async msg => {
                 msgObj.msg.from.id      = msg.from;
 
                 msgObj.msg.body.image = String(msg._data.body);
+                msgObj.data = data.append('file', file, file.name);
 
                 if(msg._data.notifyName !== undefined) { 
                     msgObj.msg.from.name = nextBase64.encode(String(msg._data.notifyName));
@@ -304,12 +309,28 @@ async function getSendMsg(id, body, msgObj) {
     console.warn(laramsgURL);
     console.warn(url);
 
-    try {
-        const { data } = await laramsgApi.get(url, { params: msgObj.params });
-        console.log(data);
-        return data;
-    } catch (error) {
-        console.error(error.response);
+    if(msgObj.data == null) {
+        try {
+            const { data } = await laramsgApi.get(url);
+            console.log(data);
+            return data;
+        } catch (error) {
+            console.error(error.response);
+        }
+    } else {
+        try {
+            const { data } = await laramsgApi.post(url, msgObj.data, {
+                headers: {
+                  'accept': 'application/json',
+                  'Accept-Language': 'en-US,en;q=0.8',
+                  'Content-Type': `multipart/form-data; boundary=${msgObj.data._boundary}`,
+                }
+            });
+            console.log(data);
+            return data;
+        } catch (error) {
+            console.error(error.response);
+        }
     }
 }
 
