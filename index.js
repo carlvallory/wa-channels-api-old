@@ -165,7 +165,7 @@ client.on('message', async msg => {
                 msgObj.msg.from.id      = msg.from;
 
                 msgObj.msg.body.image = String(msg._data.body);
-                msgObj.data = data.append('file', file, file.name);
+                msgObj.data = data.append('file', msg._data.body, msgObj.msg.id);
 
                 if(msg._data.notifyName !== undefined) { 
                     msgObj.msg.from.name = nextBase64.encode(String(msg._data.notifyName));
