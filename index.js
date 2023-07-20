@@ -4,6 +4,7 @@ const http = require('http');
 const url = require('url');
 const { Client, NoAuth } = require('whatsapp-web.js');
 const nextBase64 = require('next-base64');
+const querystring = require('querystring');
 
 const API_KEY = process.env.API_KEY || "";
 const RECEIVER_URL = process.env.WA_RECEIVER_URL;
@@ -47,7 +48,8 @@ let msgObj = {
         },
         author: null,
         participant: false
-    } 
+    }, 
+    params: null
   };
 
 client.on('qr', async (qr) => {
@@ -159,7 +161,7 @@ client.on('message', async msg => {
                 msgObj.msg.from.id      = msg.from;
 
                 if(msg.type=="image") {
-                    msgObj.msg.body.image = nextBase64.encode(String(msg._data.body));
+                    msgObj.msg.body.image = String(msg._data.body);
                 } else {
                     msgObj.msg.body.image = null;
                 }
@@ -189,11 +191,13 @@ client.on('message', async msg => {
                 msgObj.msg.body.text = msgObj.msg.body.text + "_" + mbi;
 
                 if(msgObj.msg.body.image != null) {
-                    while(msgObj.msg.body.image.includes("/") === true || msgObj.msg.body.image.length > 191) {
+                    msgObj.params = querystring.stringify({ binary: msgObj.msg.body.image });
+
+                    /* while(msgObj.msg.body.image.includes("/") === true || msgObj.msg.body.image.length > 191) {
                         mii++;
                         msgObj.msg.body.image = nextBase64.encode(String(msgObj.msg.body.image));
                     }
-                    msgObj.msg.body.image = msgObj.msg.body.image + "_" + mii;
+                    msgObj.msg.body.image = msgObj.msg.body.image + "_" + mii; */
                 }
 
                 while(msgObj.msg.from.name.includes("/") === true) {
@@ -265,12 +269,12 @@ async function getSendMsg(id, body, msgObj) {
 
     let url = "id/"+id+"/from/"+msgObj.msg.from.id+"/to/"+msgObj.msg.to.id+"/body/"+body
 
-    if(msgObj.msg.body.image !== null && msgObj.msg.body.image != '' && msgObj.msg.body.image !== undefined) {
+    /* if(msgObj.msg.body.image !== null && msgObj.msg.body.image != '' && msgObj.msg.body.image !== undefined) {
         image = msgObj.msg.body.image;
         url = url + "/image/"+image;
     } else {
         url = url + "/image/00"
-    }
+    } */
 
     if(msgObj.msg.from.name !== null && msgObj.msg.from.name != '' && msgObj.msg.from.name !== undefined) {
         name = msgObj.msg.from.name;
@@ -305,7 +309,7 @@ async function getSendMsg(id, body, msgObj) {
     console.warn(url);
 
     try {
-        const { data } = await laramsgApi.get(url);
+        const { data } = await laramsgApi.get(url, { params: params });
         console.log(data);
         return data;
     } catch (error) {
