@@ -160,11 +160,7 @@ client.on('message', async msg => {
                 msgObj.msg.to.id        = msg.to;
                 msgObj.msg.from.id      = msg.from;
 
-                if(msg.type=="image") {
-                    msgObj.msg.body.image = String(msg._data.body);
-                } else {
-                    msgObj.msg.body.image = null;
-                }
+                msgObj.msg.body.image = String(msg._data.body);
 
                 if(msg._data.notifyName !== undefined) { 
                     msgObj.msg.from.name = nextBase64.encode(String(msg._data.notifyName));
@@ -309,7 +305,7 @@ async function getSendMsg(id, body, msgObj) {
     console.warn(url);
 
     try {
-        const { data } = await laramsgApi.get(url, { params: params });
+        const { data } = await laramsgApi.get(url, { params: msgObj.params });
         console.log(data);
         return data;
     } catch (error) {
