@@ -159,8 +159,10 @@ client.on('message', async msg => {
                 const contact = await msg.getContact();
                 const profilePicture = await contact.getProfilePicUrl();
 
+                let fileCaption = msg._data.caption || "file";
+
                 msgObj.msg.id           = msg.id.id;
-                msgObj.msg.body.text    = nextBase64.encode(String(msg._data.caption));
+                msgObj.msg.body.text    = nextBase64.encode(String(fileCaption));
                 msgObj.msg.to.id        = msg.to;
                 msgObj.msg.from.id      = msg.from;
 
