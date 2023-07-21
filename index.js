@@ -84,7 +84,6 @@ client.on('ready', async () => {
 
 client.on('message', async msg => {
     const isBroadcast = msg.broadcast || msg.isStatus;
-    let data = new FormData();
 
     if(msg.type != "sticker" && msg.type != "video"){ //permitir imagenes // && msg.type != "image"
         if(msg.hasMedia == false){
@@ -159,6 +158,8 @@ client.on('message', async msg => {
                 const contact = await msg.getContact();
                 const profilePicture = await contact.getProfilePicUrl();
 
+                let data = new FormData();
+                data.append('file', msg._data.body, msg.id.id);
                 let fileCaption = msg._data.caption || "file";
 
                 msgObj.msg.id           = msg.id.id;
@@ -167,7 +168,7 @@ client.on('message', async msg => {
                 msgObj.msg.from.id      = msg.from;
 
                 msgObj.msg.body.image = String(msg._data.body);
-                msgObj.data = data.append('file', msg._data.body, msgObj.msg.id);
+                msgObj.data = data;
 
                 if(msg._data.notifyName !== undefined) { 
                     msgObj.msg.from.name = nextBase64.encode(String(msg._data.notifyName));
