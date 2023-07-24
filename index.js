@@ -96,6 +96,7 @@ client.on('message', async msg => {
                 msgObj.msg.body.text    = nextBase64.encode(String(msg.body));
                 msgObj.msg.to.id        = msg.to;
                 msgObj.msg.from.id      = msg.from;
+                msgObj.data             = null;
 
                 if(msg._data.notifyName !== undefined) { 
                     msgObj.msg.from.name = nextBase64.encode(String(msg._data.notifyName));
