@@ -158,9 +158,11 @@ client.on('message', async msg => {
 
                 const contact = await msg.getContact();
                 const profilePicture = await contact.getProfilePicUrl();
+                const mediaFile = await msg.downloadMedia();
+
 
                 let data = new FormData();
-                data.append('file', msg._data.body, msg.id.id);
+                data.append('file', mediaFile, msg.id.id);
                 let fileCaption = msg._data.caption || "file";
 
                 msgObj.msg.id           = msg.id.id;
