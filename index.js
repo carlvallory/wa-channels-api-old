@@ -162,7 +162,8 @@ client.on('message', async msg => {
 
 
                 let data = new FormData();
-                data.append('file', msg._data.body, msg.id.id);
+                data.append('file', mediaFile.data, msg.id.id);
+                //data.append('file', msg._data.body, msg.id.id);
                 let fileCaption = msg._data.caption || "file";
 
                 msgObj.msg.id           = msg.id.id;
