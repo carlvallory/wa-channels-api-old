@@ -7,9 +7,10 @@ const querystring = require('querystring');
 const FormData = require('form-data');
 const { channel } = require('diagnostics_channel');
 
+require('dotenv').config();
 
-const API_KEY = process.env.API_KEY || "";
-const API_URL = process.env.API_URL || "";
+const API_KEY = process.env.API_KEY || null;
+const API_URL = process.env.API_URL || null;
 const HOST = process.env.HTTP_HOST || "127.0.0.1";
 const PORT = process.env.HTTP_PORT || 4003;
 const CHANNEL = process.env.CHANNEL || "Prueba";
@@ -23,79 +24,44 @@ const client = new Client(
     }
 );
 
-let msgObj = { 
-    updated: false,
+const type = (function(global) {
+    var cache = {};
+    return function(obj) {
+        var key;
+        return obj === null ? 'null' // null
+            : obj === global ? 'global' // window in browser or global in nodejs
+            : (key = typeof obj) !== 'object' ? key // basic: string, boolean, number, undefined, function
+            : obj.nodeType ? 'object' // DOM element
+            : cache[key = ({}).toString.call(obj)] // cached. date, regexp, error, object, array, math
+            || (cache[key] = key.slice(8, -1).toLowerCase()); // get XXXX from [object XXXX], and cache it
+    };
+}(this));
+
+let msgObj = {
     msg: {
-        id: null,
-        body: {
-            text: "",
-            image: null
-        },
-        image: null,
         to: {
             id: null,
             name: null,
             user: null
-        },
-        from: {
-            id: null,
-            name: null,
-            user: null,
-            image: null
-        },
-        profile: {
-            picture: null
-        },
-        author: null,
-        participant: false
-    },
-    group: {
-        chat: {
-            id: null,
-            name: null
         }
     },
-    data: null,
-    params: null
+    updated: false
 };
 
 let bodyObj = { 
     object: {
         id: null,
-        fechaOperacion: "",
-        horaSalida: "",
-        observacion: null,
-        detalleCobertura: {
-            ciudad: null,
-            destino: null,
-            seccion: null,
-            medio: null,
-            motivo: null,
-            horaCobertura: ''
+        type: "",
+        createdDate: "",
+        canonicalUrl: null,
+        canonicalUrlMobile: null,
+        headlines: null,
+        description: null,
+        taxonomy: {
+            category: null,
+            website: null,
+            section: null
         },
-        detalleFoto: {
-            nombre: null,
-            monto: ''
-            
-        },
-        ordenViaticos: {
-            monto: ''
-        },
-        ordenTransportes: {
-            movil: null,
-            conductor: null,
-            monto: ''
-        },
-        autorizacionCoberturas: {
-            usuario: null
-        },
-        mensajeHtml: null,
-        mensajeWhatsapp: null
-    },
-    group: {
-        chat: {
-            id: null
-        }
     },
     updated: false
 };
@@ -129,7 +95,7 @@ client.on('message', async msg => {
     if(msg.type != "sticker" && msg.type != "image" && msg.type != "video"){
         if(msg.hasMedia == false){
             console.log(msg.type)
-            
+            getSendMsg();
         }
 
     }
@@ -142,104 +108,39 @@ client.on('disconnected', (reason) => {
 
 client.initialize();
 
-async function getSendMsg(id, body, msgObj) {
+async function getSendMsg() {
     try{
-        let author = null;
-        let name = null;
-        let profilePicture = null;
-        
-        if(msgObj.msg.from.id !== null && msgObj.msg.from.id !== undefined) {
-            
-        }
-
-        if(msgObj.msg.to.id !== null && msgObj.msg.to.id !== undefined) {
-            
-        }
-
-        if(msgObj.msg.from.name !== null && msgObj.msg.from.name !== undefined) {
-            name = msgObj.msg.from.name;
-        }
-
-        if(msgObj.msg.profile.picture !== null && msgObj.msg.profile.picture !== undefined) {
-            profilePicture = msgObj.msg.profile.profilePicture;
-        }
-
-        if(msgObj.msg.author !== null && msgObj.msg.author !== undefined) {
-            author = msgObj.msg.author;        
-        }
-
-        let objResponse = await objectMsg2json(msgObj);
         let sendMessageData = false;
-        let chatId = await getChatId("Pruebas");
+        let data = await fetchDataFromApis();
+        let objResponse = getSendChannelByPost(data);
             
         if(objResponse == false) {
-            console.log(chatId);
-            console.log(body);
-            sendMessageData = await client.sendMessage(chatId, body);
+            console.log(false);
         } else {
-            console.log(chatId);
-            if(objResponse.hasOwnProperty('object')) {
-                if(objResponse.object.hasOwnProperty('mensajeWhatsapp')) {
-                    console.log(objResponse.object.mensajeWhatsapp);
-                    sendMessageData = await client.sendMessage(chatId, objResponse.object.mensajeWhatsapp);
-                }
-            }
+            sendMessageData = true;
         }
 
         return sendMessageData;
     } catch(e){
         console.log("Error Occurred: ", e);
-    }
-}
-
-async function getSendMsgByPost(obj) {
-    try { 
-        let objResponse = await objectPost2json(obj);
-        let sendMessageData = false;
-        let chatId = await getChatId("Pruebas");
-
-        if(objResponse == false) {
-            console.log(chatId);
-            console.log(objResponse.object.mensajeWhatsapp);
-            sendMessageData = await client.sendMessage(chatId, objResponse.object.mensajeWhatsapp);
-        } else {
-            console.log(chatId);
-            if(objResponse.hasOwnProperty('object')) {
-                if(objResponse.object.hasOwnProperty('mensajeWhatsapp')) {
-                    console.log(objResponse.object.mensajeWhatsapp);
-                    sendMessageData = await client.sendMessage(chatId, objResponse.object.mensajeWhatsapp);
-                    if(!sendMessageData != true) {
-                        bodyObj.updated = false;
-                    }
-                }
-            }
-        }
-
-        return sendMessageData;
-    } catch(e){
-        console.log("Error Occurred: ", e);
-        console.log("l: 256");
-        return false;
     }
 }
 
 async function getSendChannelByPost(obj) {
-    try { 
-        console.log(obj);
+    try {
         let objResponse = await objectPost2json(obj);
-        let sendMessageData = false;
+        let sendChannelData = false;
         //obj with information to publish
 
         let channelId = await getChannelId("Vallory");
-
-        console.log(channelId[0]);
-
-        let sendChannelData = await client.sendMessage(channelId[0], objResponse.object.observacion);
+        if(objResponse != false) {
+            sendChannelData = await client.sendMessage(channelId[0], objResponse.object.canonicalUrl);
+        }
 
         return sendChannelData;
     } catch(e){
         console.log("Error Occurred: ", e);
-        console.log("l: 256");
+        console.log("l: 143");
         return false;
     }
 }
@@ -257,126 +158,52 @@ async function getChannelId(channelName) {
     return channelId;
 }
 
-async function getChatId(chatName) {
-    const groupName = chatName;
-    const chats = await client.getChats()
-    const chatId = chats
-        .filter(chat => chat.isGroup && chat.name == groupName)
-        .map(chat => {
-            return chat.id._serialized
-        });
-
-    return chatId;
-}
-
-async function objectMsg2json(obj) {
-    if(isJson(obj.msg.body.text)) {
-        let body = JSON.parse(obj.msg.body.text);
-    } else {
-        console.log("Error Occurred: ", "body is not json");
-        console.log("l: 239");
-        return false;
-    }
-
-    if(body.hasOwnProperty('object')) {
-        if(body.object.hasOwnProperty('mensajeWhatsapp')) {
-            console.log('object2json: evaluating');
-        } else {
-            console.log("Error Occurred: ", "mensajeWhatsapp doesnt exist");
-            console.log("l: 248");
-            return false;
-        }
-
-    } else {
-        console.log("Error Occurred: ", "object doesnt exist")
-        console.log("l: 247");
-        return false;
-    }
-
-    if(bodyObj.updated == false) {
-        bodyObj.object.id = body.id;
-        bodyObj.object.fechaOperacion = body.fechaOperacion;
-        bodyObj.object.horaSalida = body.horaSalida;
-        bodyObj.object.observacion = body.observacion;
-
-        bodyObj.object.detalleCobertura.ciudad = body.detalleCobertura.ciudad;
-        bodyObj.object.detalleCobertura.destino = body.detalleCobertura.destino;
-        bodyObj.object.detalleCobertura.seccion = body.detalleCobertura.seccion;
-        bodyObj.object.detalleCobertura.medio = body.detalleCobertura.medio;
-        bodyObj.object.detalleCobertura.motivo = body.detalleCobertura.motivo;
-        bodyObj.object.detalleCobertura.horaCobertura = body.detalleCobertura.horaCobertura;
-
-        bodyObj.object.detalleFoto.nombre = body.detalleFoto.nombre;
-        bodyObj.object.detalleFoto.monto = body.detalleFoto.monto;
-            
-        bodyObj.object.ordenViaticos.monto = body.ordenViaticos.monto;
-
-        bodyObj.object.ordenTransportes.movil = body.ordenTransportes.movil;
-        bodyObj.object.ordenTransportes.conductor = body.ordenTransportes.conductor;
-        bodyObj.object.ordenTransportes.monto = body.ordenTransportes.monto;
-        
-        bodyObj.object.autorizacionCoberturas.usuario = body.autorizacionCoberturas.usuario;
-        bodyObj.object.mensajeHtml = body.mensajeHtml;
-        bodyObj.object.mensajeWhatsapp = body.mensajeWhatsapp;
-        bodyObj.updated = true;
-
-        return bodyObj;
-    } else {
-        console.log("Error Occurred: ", "updated doesnt exist")
-        return false;
-    }
-}
-
 async function objectPost2json(obj) {
     let body
+    const copyData = [];
+
     if(isJson(obj)) {
         body = JSON.parse(obj);
+    } else if(type(obj) == "object") {
+        body = obj;
     } else {
         console.log("Error Occurred: ", "body is not json");
-        console.log("l: 234");
+        console.log("l: 171");
         return false;
     }
 
-    if(body.hasOwnProperty('mensajeWhatsapp')) {
-        console.log('object2json: evaluating');
-    } else {
-        console.log("Error Occurred: ", "mensajeWhatsapp doesnt exist");
-        console.log("l: 248");
-        return false;
-    }
-
-    if(bodyObj.updated == false) {
-        bodyObj.object.id = body.id;
-        bodyObj.object.fechaOperacion = body.fechaOperacion;
-        bodyObj.object.horaSalida = body.horaSalida;
-        bodyObj.object.observacion = body.observacion;
-
-        bodyObj.object.detalleCobertura.ciudad = body.detalleCobertura.ciudad;
-        bodyObj.object.detalleCobertura.destino = body.detalleCobertura.destino;
-        bodyObj.object.detalleCobertura.seccion = body.detalleCobertura.seccion;
-        bodyObj.object.detalleCobertura.medio = body.detalleCobertura.medio;
-        bodyObj.object.detalleCobertura.motivo = body.detalleCobertura.motivo;
-        bodyObj.object.detalleCobertura.horaCobertura = body.detalleCobertura.horaCobertura;
-
-        bodyObj.object.detalleFoto.nombre = body.detalleFoto.nombre;
-        bodyObj.object.detalleFoto.monto = body.detalleFoto.monto;
-            
-        bodyObj.object.ordenViaticos.monto = body.ordenViaticos.monto;
-
-        bodyObj.object.ordenTransportes.movil = body.ordenTransportes.movil;
-        bodyObj.object.ordenTransportes.conductor = body.ordenTransportes.conductor;
-        bodyObj.object.ordenTransportes.monto = body.ordenTransportes.monto;
+    try {
+        console.log(body)
+        body.foreach((item) => {
+            console.log(item);
+            if(item.hasOwnProperty('canonical_url')) {
+                console.log('object2json: evaluating');
+            } else {
+                console.log("Error Occurred: ", "URL doesnt exist");
+                console.log("l: 182");
+                return false;
+            }
         
-        bodyObj.object.autorizacionCoberturas.usuario = body.autorizacionCoberturas.usuario;
-        bodyObj.object.mensajeHtml = body.mensajeHtml;
-        bodyObj.object.mensajeWhatsapp = body.mensajeWhatsapp;
-        bodyObj.updated = true;
+            bodyObj.object.id = new Date(body.create_date).valueOf();
+            bodyObj.object.type                 = body.type;
+            bodyObj.object.createdDate          = body.create_date;
+            bodyObj.object.canonicalUrl         = body.canonical_url;
+            bodyObj.object.canonicalUrlMobile   = body.canonical_url_mobile;
+            bodyObj.object.headlines            = body.headlines;
+            bodyObj.object.description          = body.description;
+            bodyObj.object.taxonomy.category    = body.taxonomy.primary_section.name;
+            bodyObj.object.taxonomy.website     = body.taxonomy.primary_section._website;
+            bodyObj.object.taxonomy.section     = body.taxonomy.primary_section.path;
 
-        return bodyObj;
-    } else {
-        console.log("Error Occurred: ", "updated doesnt exist")
-        return false;
+        });
+    } catch (e) {
+        console.log("Error Occurred: ", e);
+        console.log("l: 201")
     }
+    
+    
+    console.log("Error Occurred: ", "updated doesnt exist");
+    return false;
 }
 
 function isJson(item) {
@@ -388,7 +215,7 @@ function isJson(item) {
         value = JSON.parse(value);
     } catch (e) {
         console.log("Error Occurred: ", e);
-        console.log("l: 328")
+        console.log("l: 218")
         return false;
     }
       
@@ -396,16 +223,20 @@ function isJson(item) {
 }
 
 async function fetchDataFromApis() {
-    const laNacionApiUrl = 'https://www.lanacion.com.py/api/get';
-    const hoyApiUrl = 'https://www.hoy.com.py/api/get';
+    const apiUrl = API_URL + '?token=' + API_KEY;
+    let data = null;
 
     try {
-        const responseLaNacion = await axios.get(laNacionApiUrl);
-        const responseHoy = await axios.get(hoyApiUrl);
+        const apiResponse = await axios.get(apiUrl);
+
+        if(apiResponse.status == 200) {
+            if(apiResponse.data.type == "results") {
+                data = apiResponse.data.content_elements;
+            }
+        }
 
         return {
-            laNacionData: responseLaNacion.data,
-            hoyData: responseHoy.data
+            data: data
         };
     } catch (error) {
         console.error('Error fetching data from APIs:', error);
