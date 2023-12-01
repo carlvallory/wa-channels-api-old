@@ -148,6 +148,10 @@ async function getSendChannelByPost(obj) {
 
         let channelId = await getChannelId("Vallory");
 
+        if(!Array.isArray(channelId) || channelId.length === 0) {
+            return false;
+        }
+
         if(objResponse != false) {
             if(Array.isArray(objReady)) {
                 if(objReady.length != 0) {
