@@ -15,6 +15,7 @@ const API_URL = process.env.API_URL || null;
 const HOST = process.env.HTTP_HOST || "127.0.0.1";
 const PORT = process.env.HTTP_PORT || 4003;
 const CHANNEL = process.env.CHANNEL || "Prueba";
+const DB_PATH = process.env.DB_PATH || null;
 
 const type = (function(global) {
     var cache = {};
@@ -134,12 +135,24 @@ async function getSendChannelByPost(obj) {
         let sendChannelData = false;
         //obj with information to publish
        
-        checkIds(objResponse);
-        return false;
-        let channelId = await getChannelId("Vallory");
-        if(objResponse != false) {
-            sendChannelData = await client.sendMessage(channelId[0], objResponse.object.canonicalUrl);
+        let duplicateIds = await checkIds(objResponse);
+        let objReady = removeObjById(objResponse, duplicateIds);
+
+        console.log(duplicateIds);
+        console.log(objReady);
+
+        if(objReady == false || objReady.length === 0) {
+            return false;
         }
+
+        let channelId = await getChannelId("Vallory");
+
+        if(objResponse != false) {
+            for (let i = 0; i < objReady.length; i++) {
+                sendChannelData = await client.sendMessage(channelId[0], objReady[i].object.canonicalUrl);
+            }
+        }
+        
 
         return sendChannelData;
     } catch(e){
@@ -240,55 +253,60 @@ function getIds(obj) {
     return ids;
 }
 
-function checkIds(obj) {
+async function checkIds(obj) {
     let ids = getIds(obj);
+    let filepath = DB_PATH + 'db/ids.json';
 
-    let storedIds = readJson('ids.json');
-    let duplicateId = duplicateId(storedIds, ids);
+    let storedIdsData = readJson(filepath);
+    let storedIds = JSON.parse(storedIdsData); // Parse the JSON string into an array
+    let duplicateId = getDuplicateId(storedIds, ids);
     let updatedIds = updateJson(storedIds, ids);
-    let storeIds = writeJson('ids.json', updatedIds);
 
+    let storeIds = await writeJson(filepath, updatedIds);
+
+    if(storeIds) {
+        return duplicateId;
+    }
+
+    return false;
+}
+
+function removeObjById(arrayOfObjects, duplicateIds) {
+    if(!Array.isArray(duplicateIds)) return false;
+    let filteredArray = arrayOfObjects.filter(value => !duplicateIds.includes(value));
+    return filteredArray.length > 0 ? filteredArray : false;
 }
 
 function writeJson(filepath, ids) {
-    try { 
+    return new Promise((resolve, reject) => {
         let jsonData = JSON.stringify(ids, null, 2);
 
         fs.writeFile(filepath, jsonData, (err) => {
             if (err) {
                 console.error('Error writing file:', err);
-                return false;
+                reject(false);
             } else {
                 console.log('File successfully written.');
-                return true;
+                resolve(true);
             }
         });
-
-        return true;
-    } catch (e) {
-        console.log("Error ocurred writing file: ", e)
-        return false;
-    }
-}
-
-function readJson(filepath) {
-    fs.readFile(filepath, 'utf8', (err, data) => {
-        if (err) {
-            console.error('Error reading file:', err);
-            return;
-        }
-
-        return JSON.parse(data);
     });
 }
 
+function readJson(filepath) {
+    return fs.readFileSync(filepath, 'utf8');
+}
+
 function updateJson(storedIds, newIds) {
+    // Ensure both storedIds and newIds are arrays
+    if (!Array.isArray(storedIds) || !Array.isArray(newIds)) {
+        throw new Error("Invalid input: storedIds and newIds must be arrays.");
+    }
     return Array.from(new Set([...storedIds, ...newIds]));
 }
 
-function duplicateId(storedIds, newIds) {
-    return newIds.filter(id => storedIds.includes(id));
-
+function getDuplicateId(storedIds, newIds) {
+    return newIds.filter(value => storedIds.includes(value));
 }
 
 function isJson(item) {
