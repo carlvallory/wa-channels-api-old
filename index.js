@@ -17,6 +17,8 @@ const PORT = process.env.HTTP_PORT || 4003;
 const CHANNEL = process.env.CHANNEL || "Prueba";
 const DB_PATH = process.env.DB_PATH || null;
 
+const website = "https://www.lanacion.com.py/"
+
 const type = (function(global) {
     var cache = {};
     return function(obj) {
@@ -149,7 +151,7 @@ async function getSendChannelByPost(obj) {
 
         if(objResponse != false) {
             for (let i = 0; i < objReady.length; i++) {
-                sendChannelData = await client.sendMessage(channelId[0], objReady[i].object.canonicalUrl);
+                sendChannelData = await client.sendMessage(channelId[0], website + objReady[i].object.canonicalUrl);
             }
         }
         
