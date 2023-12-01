@@ -16,8 +16,8 @@ const HOST = process.env.HTTP_HOST || "127.0.0.1";
 const PORT = process.env.HTTP_PORT || 4003;
 const CHANNEL = process.env.CHANNEL || "Prueba";
 const DB_PATH = process.env.DB_PATH || null;
-
-const website = "https://www.lanacion.com.py/"
+const WEBSITE = process.env.WEBSITE || null;
+const WEB_URL = process.env.WEB_URL || null;
 
 const type = (function(global) {
     var cache = {};
@@ -151,7 +151,10 @@ async function getSendChannelByPost(obj) {
 
         if(objResponse != false) {
             for (let i = 0; i < objReady.length; i++) {
-                sendChannelData = await client.sendMessage(channelId[0], website + objReady[i].object.canonicalUrl);
+                if(objReady.taxonomy.website == WEBSITE) {
+                    let newUrl = WEB_URL + objReady[i].object.canonicalUrl;
+                    sendChannelData = await client.sendMessage(channelId[0], newUrl);
+                }
             }
         }
         
