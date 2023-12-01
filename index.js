@@ -2,6 +2,7 @@ const qrcode = require('qrcode-terminal');
 const axios = require('axios');
 const http = require('http');
 const url = require('url');
+const fs = require('fs');
 const { Client, NoAuth } = require('whatsapp-web.js');
 const querystring = require('querystring');
 const FormData = require('form-data');
@@ -15,15 +16,6 @@ const HOST = process.env.HTTP_HOST || "127.0.0.1";
 const PORT = process.env.HTTP_PORT || 4003;
 const CHANNEL = process.env.CHANNEL || "Prueba";
 
-const client = new Client(
-    {
-        authStrategy: new NoAuth(),
-        puppeteer: {
-            args: ['--no-sandbox'],
-        }
-    }
-);
-
 const type = (function(global) {
     var cache = {};
     return function(obj) {
@@ -36,6 +28,15 @@ const type = (function(global) {
             || (cache[key] = key.slice(8, -1).toLowerCase()); // get XXXX from [object XXXX], and cache it
     };
 }(this));
+
+const client = new Client(
+    {
+        authStrategy: new NoAuth(),
+        puppeteer: {
+            args: ['--no-sandbox'],
+        }
+    }
+);
 
 let msgObj = {
     msg: {
@@ -87,6 +88,7 @@ client.on('ready', async () => {
 
     console.log(client.info.wid.user);
     console.log('Client is Ready');
+    getSendMsg();
 });
 
 client.on('message', async msg => {
@@ -131,7 +133,9 @@ async function getSendChannelByPost(obj) {
         let objResponse = await objectPost2json(obj);
         let sendChannelData = false;
         //obj with information to publish
-
+       
+        checkIds(objResponse);
+        return false;
         let channelId = await getChannelId("Vallory");
         if(objResponse != false) {
             sendChannelData = await client.sendMessage(channelId[0], objResponse.object.canonicalUrl);
@@ -163,8 +167,10 @@ async function objectPost2json(obj) {
     const copyData = [];
 
     if(isJson(obj)) {
+        console.log("JSON");
         body = JSON.parse(obj);
     } else if(type(obj) == "object") {
+        console.log("OBJECT");
         body = obj;
     } else {
         console.log("Error Occurred: ", "body is not json");
@@ -173,37 +179,116 @@ async function objectPost2json(obj) {
     }
 
     try {
-        console.log(body)
-        body.foreach((item) => {
-            console.log(item);
-            if(item.hasOwnProperty('canonical_url')) {
-                console.log('object2json: evaluating');
-            } else {
-                console.log("Error Occurred: ", "URL doesnt exist");
-                console.log("l: 182");
-                return false;
-            }
-        
-            bodyObj.object.id = new Date(body.create_date).valueOf();
-            bodyObj.object.type                 = body.type;
-            bodyObj.object.createdDate          = body.create_date;
-            bodyObj.object.canonicalUrl         = body.canonical_url;
-            bodyObj.object.canonicalUrlMobile   = body.canonical_url_mobile;
-            bodyObj.object.headlines            = body.headlines;
-            bodyObj.object.description          = body.description;
-            bodyObj.object.taxonomy.category    = body.taxonomy.primary_section.name;
-            bodyObj.object.taxonomy.website     = body.taxonomy.primary_section._website;
-            bodyObj.object.taxonomy.section     = body.taxonomy.primary_section.path;
 
-        });
+        for (let i = 0; i < body.data.length; i++) {
+            dataObj = body.data[i];
+            
+
+            if(Object.keys(dataObj).length == 15) {
+            
+                if(dataObj.hasOwnProperty('canonical_url')) {
+                    console.log('object2json: evaluating');
+                } else {
+                    console.log("Error Occurred: ", "URL doesnt exist");
+                    console.log("l: 187");
+                    return false;
+                }
+
+                if(dataObj.hasOwnProperty('created_date')) {
+                    console.log('object2json: evaluating');
+                } else {
+                    console.log("Created Date doesnt exist");
+                    console.log("l: 195");
+                }
+            
+                bodyObj.object.id = new Date(dataObj.created_date).valueOf();
+                bodyObj.object.type                 = dataObj.type;
+                bodyObj.object.createdDate          = dataObj.created_date;
+                bodyObj.object.canonicalUrl         = dataObj.canonical_url;
+                bodyObj.object.canonicalUrlMobile   = dataObj.canonical_url_mobile;
+                bodyObj.object.headlines            = dataObj.headlines.basic;
+                bodyObj.object.description          = dataObj.description.basic;
+                bodyObj.object.taxonomy.category    = dataObj.taxonomy.primary_section.name;
+                bodyObj.object.taxonomy.website     = dataObj.taxonomy.primary_section._website;
+                bodyObj.object.taxonomy.section     = dataObj.taxonomy.primary_section.path;
+
+                copyData.push(bodyObj);
+            } else {
+                console.log("l: 212");
+            }
+        }
+
+        return copyData;
+
+
     } catch (e) {
         console.log("Error Occurred: ", e);
-        console.log("l: 201")
+        console.log("l: 220")
     }
     
     
     console.log("Error Occurred: ", "updated doesnt exist");
     return false;
+}
+
+function getIds(obj) {
+    const ids = []
+    obj.forEach(element => {
+        ids.push(element.object.id)
+    });
+
+    return ids;
+}
+
+function checkIds(obj) {
+    let ids = getIds(obj);
+
+    let storedIds = readJson('ids.json');
+    let duplicateId = duplicateId(storedIds, ids);
+    let updatedIds = updateJson(storedIds, ids);
+    let storeIds = writeJson('ids.json', updatedIds);
+
+}
+
+function writeJson(filepath, ids) {
+    try { 
+        let jsonData = JSON.stringify(ids, null, 2);
+
+        fs.writeFile(filepath, jsonData, (err) => {
+            if (err) {
+                console.error('Error writing file:', err);
+                return false;
+            } else {
+                console.log('File successfully written.');
+                return true;
+            }
+        });
+
+        return true;
+    } catch (e) {
+        console.log("Error ocurred writing file: ", e)
+        return false;
+    }
+}
+
+function readJson(filepath) {
+    fs.readFile(filepath, 'utf8', (err, data) => {
+        if (err) {
+            console.error('Error reading file:', err);
+            return;
+        }
+
+        return JSON.parse(data);
+    });
+}
+
+function updateJson(storedIds, newIds) {
+    return Array.from(new Set([...storedIds, ...newIds]));
+}
+
+function duplicateId(storedIds, newIds) {
+    return newIds.filter(id => storedIds.includes(id));
+
 }
 
 function isJson(item) {
@@ -215,7 +300,7 @@ function isJson(item) {
         value = JSON.parse(value);
     } catch (e) {
         console.log("Error Occurred: ", e);
-        console.log("l: 218")
+        console.log("l: 237")
         return false;
     }
       
