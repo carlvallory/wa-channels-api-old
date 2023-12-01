@@ -140,8 +140,7 @@ async function getSendChannelByPost(obj) {
         let duplicateIds = await checkIds(objResponse);
         let objReady = removeObjById(objResponse, duplicateIds);
 
-        console.log(duplicateIds);
-        console.log(objReady);
+        console.log(duplicateIds,143);
 
         if(objReady == false || objReady.length === 0) {
             return false;
@@ -150,10 +149,14 @@ async function getSendChannelByPost(obj) {
         let channelId = await getChannelId("Vallory");
 
         if(objResponse != false) {
-            for (let i = 0; i < objReady.length; i++) {
-                if(objReady.taxonomy.website == WEBSITE) {
-                    let newUrl = WEB_URL + objReady[i].object.canonicalUrl;
-                    sendChannelData = await client.sendMessage(channelId[0], newUrl);
+            if(Array.isArray(objReady)) {
+                if(objReady.length != 0) {
+                    for (let i = 0; i < objReady.length; i++) {
+                        if(objReady[i].object.taxonomy.website == WEBSITE) {
+                            let newUrl = WEB_URL + objReady[i].object.canonicalUrl;
+                            sendChannelData = await client.sendMessage(channelId[0], newUrl);
+                        }
+                    }
                 }
             }
         }
@@ -162,7 +165,7 @@ async function getSendChannelByPost(obj) {
         return sendChannelData;
     } catch(e){
         console.log("Error Occurred: ", e);
-        console.log("l: 143");
+        console.log("l: 169");
         return false;
     }
 }
@@ -175,7 +178,7 @@ async function getChannelId(channelName) {
             return channel.id._serialized
         });
 
-    console.log(channelId);
+    console.log(channelId, 181);
 
     return channelId;
 }
