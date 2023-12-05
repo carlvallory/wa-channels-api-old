@@ -1,3 +1,4 @@
+const cheerio = require('cheerio');
 const qrcode = require('qrcode-terminal');
 const axios = require('axios');
 const http = require('http');
@@ -65,6 +66,11 @@ let bodyObj = {
             category: null,
             website: null,
             section: null
+        },
+        og: {
+            title: null,
+            description: null,
+            image: null
         },
     },
     updated: false
@@ -155,10 +161,21 @@ async function getSendChannelByPost(obj) {
         if(objResponse != false) {
             if(Array.isArray(objReady)) {
                 if(objReady.length != 0) {
+                    let newId = [];
                     for (let i = 0; i < objReady.length; i++) {
                         if(objReady[i].object.taxonomy.website == WEBSITE) {
-                            let newUrl = WEB_URL + objReady[i].object.canonicalUrl;
-                            sendChannelData = await client.sendMessage(channelId[0], newUrl);
+                            if(newId.length === 0 || !newId.includes(objReady[i].object.id)) {
+                                let og = await fetchOGMetadata(objReady[i].object.canonicalUrl);
+                                console.log(og, 169);
+                                objReady[i].object.og.title = og.ogTitle;
+                                objReady[i].object.og.description = og.ogDescription;
+                                objReady[i].object.og.image = og.ogImage;
+
+                                newId.push(objReady[i].object.id);
+                                console.log(objReady[i], 175);
+                                let newUrl = WEB_URL + objReady[i].object.canonicalUrl;
+                                sendChannelData = await client.sendMessage(channelId[0], newUrl);
+                            }
                         }
                     }
                 }
@@ -169,7 +186,7 @@ async function getSendChannelByPost(obj) {
         return sendChannelData;
     } catch(e){
         console.log("Error Occurred: ", e);
-        console.log("l: 169");
+        console.log("l: 189");
         return false;
     }
 }
@@ -182,7 +199,7 @@ async function getChannelId(channelName) {
             return channel.id._serialized
         });
 
-    console.log(channelId, 181);
+    console.log(channelId, 202);
 
     return channelId;
 }
@@ -199,7 +216,7 @@ async function objectPost2json(obj) {
         body = obj;
     } else {
         console.log("Error Occurred: ", "body is not json");
-        console.log("l: 171");
+        console.log("l: 219");
         return false;
     }
 
@@ -215,7 +232,7 @@ async function objectPost2json(obj) {
                     console.log('object2json: evaluating');
                 } else {
                     console.log("Error Occurred: ", "URL doesnt exist");
-                    console.log("l: 187");
+                    console.log("l: 235");
                     return false;
                 }
 
@@ -223,7 +240,7 @@ async function objectPost2json(obj) {
                     console.log('object2json: evaluating');
                 } else {
                     console.log("Created Date doesnt exist");
-                    console.log("l: 195");
+                    console.log("l: 243");
                 }
             
                 bodyObj.object.id = new Date(dataObj.created_date).valueOf();
@@ -239,7 +256,7 @@ async function objectPost2json(obj) {
 
                 copyData.push(bodyObj);
             } else {
-                console.log("l: 212");
+                console.log("l: 259");
             }
         }
 
@@ -248,7 +265,7 @@ async function objectPost2json(obj) {
 
     } catch (e) {
         console.log("Error Occurred: ", e);
-        console.log("l: 220")
+        console.log("l: 268")
     }
     
     
@@ -269,7 +286,7 @@ async function checkIds(obj) {
     let ids = getIds(obj);
     let filepath = DB_PATH + 'db/ids.json';
 
-    let storedIdsData = readJson(filepath);
+    let storedIdsData = await readJson(filepath);
     let storedIds = JSON.parse(storedIdsData); // Parse the JSON string into an array
     let duplicateId = getDuplicateId(storedIds, ids);
     let updatedIds = updateJson(storedIds, ids);
@@ -305,7 +322,10 @@ function writeJson(filepath, ids) {
     });
 }
 
-function readJson(filepath) {
+async function readJson(filepath) {
+    if (!fs.existsSync(filepath)) {
+        $emptyArray = await writeJson(filepath, []);
+    }
     return fs.readFileSync(filepath, 'utf8');
 }
 
@@ -335,6 +355,28 @@ function isJson(item) {
     }
       
     return typeof value === "object" && value !== null;
+}
+
+async function fetchOGMetadata(url) {
+    try {
+        // Fetching the HTML content of the page
+        const { data } = await axios.get(url);
+        const $ = cheerio.load(data);
+
+        // Extracting the Open Graph metadata
+        const ogTitle = $('meta[property="og:title"]').attr('content');
+        const ogDescription = $('meta[property="og:description"]').attr('content');
+        const ogImage = $('meta[property="og:image"]').attr('content');
+
+        return {
+            ogTitle,
+            ogDescription,
+            ogImage
+        };
+    } catch (error) {
+        console.error(`Error fetching Open Graph Data: ${error}`);
+        return {};
+    }
 }
 
 async function fetchDataFromApis() {
