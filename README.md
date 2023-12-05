@@ -13,6 +13,9 @@ The `wa-channels-api` is a powerful WhatsApp API client designed to work seamles
 `npm i whatsapp-web.js`
 
 ## Requirements
+ - qrcode-terminal
+`npm install qrcode-terminal`
+
  - axios
 `npm install axios`
 
