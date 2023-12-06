@@ -308,7 +308,7 @@ async function checkIds(obj) {
 
 function removeObjById(arrayOfObjects, duplicateIds) {
     if(!Array.isArray(duplicateIds)) return false;
-    let filteredArray = arrayOfObjects.filter(value => !duplicateIds.includes(value));
+    let filteredArray = arrayOfObjects.filter(value => !duplicateIds.includes(value.object.id));
     return filteredArray.length > 0 ? filteredArray : false;
 }
 
