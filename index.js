@@ -4,7 +4,7 @@ const axios = require('axios');
 const http = require('http');
 const url = require('url');
 const fs = require('fs');
-const { Client, NoAuth } = require('whatsapp-web.js');
+const { Client, NoAuth, MessageMedia } = require('whatsapp-web.js');
 const querystring = require('querystring');
 const FormData = require('form-data');
 const { channel } = require('diagnostics_channel');
@@ -165,16 +165,22 @@ async function getSendChannelByPost(obj) {
                     for (let i = 0; i < objReady.length; i++) {
                         if(objReady[i].object.taxonomy.website == WEBSITE) {
                             if(newId.length === 0 || !newId.includes(objReady[i].object.id)) {
-                                let og = await fetchOGMetadata(objReady[i].object.canonicalUrl);
-                                console.log(og, 169);
-                                objReady[i].object.og.title = og.ogTitle;
-                                objReady[i].object.og.description = og.ogDescription;
-                                objReady[i].object.og.image = og.ogImage;
+                                let newUrl = WEB_URL + objReady[i].object.canonicalUrl;
+                                let og = await fetchOGMetadata(newUrl);
+                                let image = await fetchImageFromUrl(og.ogImage);
+                                let media = new MessageMedia('image/jpeg', Buffer.from(image).toString('base64'));
+
+                                objReady[i].object.og.title = `*${og.ogTitle}*`;
+                                objReady[i].object.og.description = `_${og.ogDescription}_`;
+                                objReady[i].object.og.image = media; // TO DO BLOB attachment
+
+                                const message = `${objReady[i].object.og.title}\n\n${objReady[i].object.og.description}\n\n${newUrl}`;
 
                                 newId.push(objReady[i].object.id);
                                 console.log(objReady[i], 175);
-                                let newUrl = WEB_URL + objReady[i].object.canonicalUrl;
-                                sendChannelData = await client.sendMessage(channelId[0], newUrl);
+
+                                sendChannelData = await client.sendMessage(channelId[0], objReady[i].object.og.image);
+                                sendChannelData = await client.sendMessage(channelId[0], message);
                             }
                         }
                     }
@@ -265,7 +271,7 @@ async function objectPost2json(obj) {
 
     } catch (e) {
         console.log("Error Occurred: ", e);
-        console.log("l: 268")
+        console.log("l: 268");
     }
     
     
@@ -350,7 +356,7 @@ function isJson(item) {
         value = JSON.parse(value);
     } catch (e) {
         console.log("Error Occurred: ", e);
-        console.log("l: 237")
+        console.log("l: 354")
         return false;
     }
       
@@ -361,12 +367,12 @@ async function fetchOGMetadata(url) {
     try {
         // Fetching the HTML content of the page
         const { data } = await axios.get(url);
-        const $ = cheerio.load(data);
+        const cheerAxios = cheerio.load(data);
 
         // Extracting the Open Graph metadata
-        const ogTitle = $('meta[property="og:title"]').attr('content');
-        const ogDescription = $('meta[property="og:description"]').attr('content');
-        const ogImage = $('meta[property="og:image"]').attr('content');
+        const ogTitle = cheerAxios('meta[property="og:title"]').attr('content');
+        const ogDescription = cheerAxios('meta[property="og:description"]').attr('content');
+        const ogImage = cheerAxios('meta[property="og:image"]').attr('content');
 
         return {
             ogTitle,
@@ -376,6 +382,20 @@ async function fetchOGMetadata(url) {
     } catch (error) {
         console.error(`Error fetching Open Graph Data: ${error}`);
         return {};
+    }
+}
+
+async function fetchImageFromUrl(imageUrl) {
+    try {
+        // Fetching the HTML content of the page
+        const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+        const image = response.data;
+
+        return image;
+
+    } catch (error) {
+        console.error(`Error fetching Image: ${error}`);
+        return false;
     }
 }
 
