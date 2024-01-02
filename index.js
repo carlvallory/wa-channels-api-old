@@ -170,8 +170,11 @@ async function getSendChannelByPost(obj) {
                                 let image = await fetchImageFromUrl(og.ogImage);
                                 let media = new MessageMedia('image/jpeg', Buffer.from(image).toString('base64'));
 
-                                objReady[i].object.og.title = `*${og.ogTitle}*`;
-                                objReady[i].object.og.description = `_${og.ogDescription}_`;
+                                let ogTitle = truncateString(og.ogTitle, 75);
+                                let ogDescription = truncateString(og.ogDescription, 48);
+
+                                objReady[i].object.og.title = `*${ogTitle}*`;
+                                objReady[i].object.og.description = `_${ogDescription}_`;
                                 objReady[i].object.og.image = media; // TO DO BLOB attachment
 
                                 const message = `${objReady[i].object.og.title}\n\n${objReady[i].object.og.description}\n\n${newUrl}`;
@@ -179,8 +182,8 @@ async function getSendChannelByPost(obj) {
                                 newId.push(objReady[i].object.id);
                                 console.log(objReady[i], 175);
 
-                                sendChannelData = await client.sendMessage(channelId[0], objReady[i].object.og.image);
-                                sendChannelData = await client.sendMessage(channelId[0], message);
+                                sendChannelData = await client.sendMessage(channelId[0], objReady[i].object.og.image, {caption: message});
+                                //sendChannelData = await client.sendMessage(channelId[0], message);
                             }
                         }
                     }
@@ -421,6 +424,20 @@ async function fetchDataFromApis() {
     }
 }
 
+function truncateString(str, num) {
+    // If the length of str is less than or equal to num
+    // just return str--don't truncate it.
+    if (str.length <= num) {
+      return trimString(str);
+    }
+    // Return str truncated with '...' concatenated to the end of str.
+    return str.slice(0, num).trim().replace(/\s+/g, ' ') + '...';
+}
+
+function trimString(str) {
+    // Return str trimmed string.
+    return str.trim().replace(/\s+/g, ' ');
+}
 
 
 process.on('unhandledRejection', (error) => {
