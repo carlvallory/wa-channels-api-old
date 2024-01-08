@@ -190,12 +190,11 @@ async function getSendChannelByPost(obj) {
                 }
             }
         }
-        
 
         return sendChannelData;
     } catch(e){
         console.log("Error Occurred: ", e);
-        console.log("l: 189");
+        console.log("l: 197");
         return false;
     }
 }
@@ -208,7 +207,7 @@ async function getChannelId(channelName) {
             return channel.id._serialized
         });
 
-    console.log(channelId, 202);
+    console.log(channelId, 210);
 
     return channelId;
 }
@@ -225,18 +224,23 @@ async function objectPost2json(obj) {
         body = obj;
     } else {
         console.log("Error Occurred: ", "body is not json");
-        console.log("l: 219");
+        console.log("l: 227");
+        return false;
+    }
+
+    if(isObject(obj) === false) {
+        console.log("l: 232");
         return false;
     }
 
     try {
 
         for (let i = 0; i < body.data.length; i++) {
+
             dataObj = body.data[i];
             
-
             if(Object.keys(dataObj).length == 15) {
-            
+                
                 if(dataObj.hasOwnProperty('canonical_url')) {
                     console.log('object2json: evaluating');
                 } else {
@@ -251,7 +255,7 @@ async function objectPost2json(obj) {
                     console.log("Created Date doesnt exist");
                     console.log("l: 243");
                 }
-            
+                
                 bodyObj.object.id = new Date(dataObj.created_date).valueOf();
                 bodyObj.object.type                 = dataObj.type;
                 bodyObj.object.createdDate          = dataObj.created_date;
@@ -366,6 +370,10 @@ function isJson(item) {
     return typeof value === "object" && value !== null;
 }
 
+function isObject(variable) {
+    return variable !== null && typeof variable === 'object' && !Array.isArray(variable);
+}
+
 async function fetchOGMetadata(url) {
     try {
         // Fetching the HTML content of the page
@@ -445,68 +453,92 @@ process.on('unhandledRejection', (error) => {
 });
 
 const server = http.createServer((req, res) => {
-    const baseURL =  req.protocol + '://' + req.headers.host + '/';
+    let protocol = "http";
+    if(req.protocol !== undefined) {    protocol = req.protocol; }
+
+    const baseURL =  protocol + '://' + req.headers.host + '/';
     const reqUrl = new URL(req.url,baseURL);
 
-    if(reqUrl.pathname == "/msg") {
-        if (req.method == 'POST') {
-            let body = [];
-            req.on('data', async (chunk) => {
-                body.push(chunk);
-            }).on('end', async () => {
-                body = Buffer.concat(body).toString();
-                console.log(body);
-                // at this point, `body` has the entire request body stored in it as a string
-                if(await getSendMsgByPost(body)) {
-                    res.end(JSON.stringify({ status: 200, message: 'Success'}));
+    if(reqUrl.pathname == "/msg" || reqUrl.pathname == "/channel" || reqUrl.pathname == "/channel/update") {
+        if(reqUrl.pathname == "/msg") {
+            if (req.method == 'POST') {
+                let body = [];
+                req.on('data', async (chunk) => {
+                    body.push(chunk);
+                }).on('end', async () => {
+                    body = Buffer.concat(body).toString();
+                    console.log(body);
+                    // at this point, `body` has the entire request body stored in it as a string
+                    if(await getSendMsgByPost(body)) {
+                        res.end(JSON.stringify({ status: 200, message: 'Success'}));
+                    } else {
+                        res.end(JSON.stringify({ status: 500, message: 'Error'}));
+                    }
+                });
+            }
+
+            client.getState().then((result) => {
+                if(result.match("CONNECTED")){
+                    var q = url.parse(req.url, true).query;
+                    res.end(JSON.stringify({ status: 200, message: 'Msg Success'}));
                 } else {
-                    res.end(JSON.stringify({ status: 500, message: 'Error'}));
+                    console.error("Whatsapp Client not connected");
+                    res.end(JSON.stringify({ status: 500, message: 'Client State Null'}));
                 }
             });
         }
 
-
-        client.getState().then((result) => {
-            if(result.match("CONNECTED")){
-                var q = url.parse(req.url, true).query;
-                
-                res.end(JSON.stringify({ status: 200, message: 'Log Out Success'}));
-            } else {
-                console.error("Whatsapp Client not connected");
-
-                res.end(JSON.stringify({ status: 500, message: 'Client State Null'}));
+        if(reqUrl.pathname == "/channel") {
+            if (req.method == 'POST') {
+                let body = [];
+                req.on('data', async (chunk) => {
+                    body.push(chunk);
+                }).on('end', async () => {
+                    body = Buffer.concat(body).toString();
+                    if(await getSendChannelByPost(body)) {
+                        res.end(JSON.stringify({ status: 200, message: 'Success'}));
+                    } else {
+                        res.end(JSON.stringify({ status: 500, message: 'Error'}));
+                    }
+                });
             }
-        });
-    }
 
-    if(reqUrl.pathname == "/channel") {
-        if (req.method == 'POST') {
-            let body = [];
-            req.on('data', async (chunk) => {
-                body.push(chunk);
-            }).on('end', async () => {
-                body = Buffer.concat(body).toString();
-                if(await getSendChannelByPost(body)) {
-                    res.end(JSON.stringify({ status: 200, message: 'Success'}));
+            client.getState().then((result) => {
+                if(result.match("CONNECTED")){
+                    var q = url.parse(req.url, true).query;
+                    res.end(JSON.stringify({ status: 200, message: 'Checking Channel Success'}));
                 } else {
-                    res.end(JSON.stringify({ status: 500, message: 'Error'}));
+                    console.error("Whatsapp Client not connected");
+                    res.end(JSON.stringify({ status: 500, message: 'Client State Null'}));
                 }
             });
         }
 
-        client.getState().then((result) => {
-            if(result.match("CONNECTED")){
-                var q = url.parse(req.url, true).query;
-                
-                res.end(JSON.stringify({ status: 200, message: 'Log Out Success'}));
-            } else {
-                console.error("Whatsapp Client not connected");
-
-                res.end(JSON.stringify({ status: 500, message: 'Client State Null'}));
+        if(reqUrl.pathname == "/channel/update") {
+            if (req.method == 'GET') {
+                try {
+                    var r = getSendMsg();
+                    if(r) {
+                        res.end(JSON.stringify({ status: 200, message: 'Success'}));
+                    } else {
+                        res.end(JSON.stringify({ status: 500, message: 'Error'}));
+                    }
+                } catch(e){
+                    console.log("Error Occurred: ", e);
+                }
             }
-        });
+
+            client.getState().then((result) => {
+                if(result.match("CONNECTED")){
+                    res.end(JSON.stringify({ status: 200, message: 'Update Success'}));
+                } else {
+                    res.end(JSON.stringify({ status: 500, message: 'Client State Null'}));
+                }
+            });
+        }
+    } else {
+        res.writeHead(200, {'Content-Type': 'text/html'});
+        res.end();
     }
     
-    res.writeHead(200, {'Content-Type': 'text/html'});
-    res.end();
 }).listen(PORT); 
