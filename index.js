@@ -19,6 +19,7 @@ const CHANNEL = process.env.CHANNEL || "Prueba";
 const DB_PATH = process.env.DB_PATH || null;
 const WEBSITE = process.env.WEBSITE || null;
 const WEB_URL = process.env.WEB_URL || null;
+const DEBUG = process.env.DEBUG || false;
 
 const type = (function(global) {
     var cache = {};
@@ -124,6 +125,10 @@ async function getSendMsg() {
         let sendMessageData = false;
         let data = await fetchDataFromApis();
         let objResponse = getSendChannelByPost(data);
+
+        if(DEBUG === true) {
+            console.log(data);
+        }
             
         if(objResponse == false) {
             console.log(false);
