@@ -517,6 +517,7 @@ const server = http.createServer((req, res) => {
         if(reqUrl.pathname == "/channel/update") {
             if (req.method == 'GET') {
                 try {
+                    console.log(req.method);
                     var r = getSendMsg();
                     if(r) {
                         res.end(JSON.stringify({ status: 200, message: 'Success'}));
