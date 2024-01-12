@@ -106,7 +106,7 @@ client.on('message', async msg => {
 
     if(msg.type != "sticker" && msg.type != "image" && msg.type != "video"){
         if(msg.hasMedia == false){
-            console.log(msg.type)
+            if(DEBUG === true) { console.log(msg.type); }
             getSendMsg();
         }
 
@@ -126,9 +126,7 @@ async function getSendMsg() {
         let data = await fetchDataFromApis();
         let objResponse = getSendChannelByPost(data);
 
-        if(DEBUG === true) {
-            console.log(data);
-        }
+        if(DEBUG === true) { console.log(data); }
             
         if(objResponse == false) {
             console.log(false);
@@ -151,7 +149,7 @@ async function getSendChannelByPost(obj) {
         let duplicateIds = await checkIds(objResponse);
         let objReady = removeObjById(objResponse, duplicateIds);
 
-        console.log(duplicateIds,143);
+        if(DEBUG === true) { console.log(duplicateIds,143); }
 
         if(objReady == false || objReady.length === 0) {
             return false;
@@ -185,7 +183,7 @@ async function getSendChannelByPost(obj) {
                                 const message = `${objReady[i].object.og.title}\n\n${objReady[i].object.og.description}\n\n${newUrl}`;
 
                                 newId.push(objReady[i].object.id);
-                                console.log(objReady[i], 175);
+                                if(DEBUG === true) { console.log(objReady[i], 186); } // check
 
                                 sendChannelData = await client.sendMessage(channelId[0], objReady[i].object.og.image, {caption: message});
                                 //sendChannelData = await client.sendMessage(channelId[0], message);
@@ -199,7 +197,7 @@ async function getSendChannelByPost(obj) {
         return sendChannelData;
     } catch(e){
         console.log("Error Occurred: ", e);
-        console.log("l: 197");
+        console.log("l: 200");
         return false;
     }
 }
@@ -212,29 +210,29 @@ async function getChannelId(channelName) {
             return channel.id._serialized
         });
 
-    console.log(channelId, 210);
+        if(DEBUG === true) { console.log(channelId, 213); } // check
 
     return channelId;
 }
 
 async function objectPost2json(obj) {
     let body
-    const copyData = [];
+    let copyData = [];
 
     if(isJson(obj)) {
-        console.log("JSON");
+        if(DEBUG === true) { console.log("JSON"); }
         body = JSON.parse(obj);
     } else if(type(obj) == "object") {
-        console.log("OBJECT");
+        if(DEBUG === true) { console.log("OBJECT"); }
         body = obj;
     } else {
         console.log("Error Occurred: ", "body is not json");
-        console.log("l: 227");
+        console.log("l: 230");
         return false;
     }
 
     if(isObject(obj) === false) {
-        console.log("l: 232");
+        console.log("l: 235");
         return false;
     }
 
@@ -247,18 +245,18 @@ async function objectPost2json(obj) {
             if(Object.keys(dataObj).length == 15) {
                 
                 if(dataObj.hasOwnProperty('canonical_url')) {
-                    console.log('object2json: evaluating');
+                    if(DEBUG === true) { console.log('object2json: evaluating'); }
                 } else {
                     console.log("Error Occurred: ", "URL doesnt exist");
-                    console.log("l: 235");
+                    console.log("l: 250");
                     return false;
                 }
 
                 if(dataObj.hasOwnProperty('created_date')) {
-                    console.log('object2json: evaluating');
+                    if(DEBUG === true) { console.log('object2json: evaluating'); }
                 } else {
                     console.log("Created Date doesnt exist");
-                    console.log("l: 243");
+                    console.log("l: 260");
                 }
                 
                 bodyObj.object.id = new Date(dataObj.created_date).valueOf();
@@ -274,7 +272,7 @@ async function objectPost2json(obj) {
 
                 copyData.push(bodyObj);
             } else {
-                console.log("l: 259");
+                console.log("l: 275");
             }
         }
 
@@ -283,7 +281,7 @@ async function objectPost2json(obj) {
 
     } catch (e) {
         console.log("Error Occurred: ", e);
-        console.log("l: 268");
+        console.log("l: 285");
     }
     
     
@@ -306,7 +304,7 @@ async function checkIds(obj) {
 
     let storedIdsData = await readJson(filepath);
     let storedIds = JSON.parse(storedIdsData); // Parse the JSON string into an array
-    let duplicateId = getDuplicateId(storedIds, ids);
+    let duplicateId = getDuplicateId(storedIds, ids); // check
     let updatedIds = updateJson(storedIds, ids);
 
     let storeIds = await writeJson(filepath, updatedIds);
@@ -322,6 +320,10 @@ function removeObjById(arrayOfObjects, duplicateIds) {
     if(!Array.isArray(duplicateIds)) return false;
     let filteredArray = arrayOfObjects.filter(value => !duplicateIds.includes(value.object.id));
     return filteredArray.length > 0 ? filteredArray : false;
+}
+
+function removeObjByQty(arrayOfObjects) {
+    return sliceArray(arrayOfObjects, 8);
 }
 
 function writeJson(filepath, ids) {
@@ -452,6 +454,13 @@ function trimString(str) {
     return str.trim().replace(/\s+/g, ' ');
 }
 
+function sliceArray(array, start) {
+    // Check if the array has more than n items
+    if (array.length > start) {
+        return array.slice(-start);
+    }
+    return array;
+}
 
 process.on('unhandledRejection', (error) => {
     console.error('Unhandled Promise Rejection:', error);
@@ -472,7 +481,7 @@ const server = http.createServer((req, res) => {
                     body.push(chunk);
                 }).on('end', async () => {
                     body = Buffer.concat(body).toString();
-                    console.log(body);
+
                     // at this point, `body` has the entire request body stored in it as a string
                     if(await getSendMsgByPost(body)) {
                         res.end(JSON.stringify({ status: 200, message: 'Success'}));
@@ -522,7 +531,9 @@ const server = http.createServer((req, res) => {
         if(reqUrl.pathname == "/channel/update") {
             if (req.method == 'GET') {
                 try {
-                    console.log(req.method);
+                    if(DEBUG === true) {
+                        console.log(req.method);
+                    }
                     var r = getSendMsg();
                     if(r) {
                         res.end(JSON.stringify({ status: 200, message: 'Success'}));
