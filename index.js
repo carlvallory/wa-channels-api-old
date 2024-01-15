@@ -20,6 +20,9 @@ const DB_PATH = process.env.DB_PATH || null;
 const WEBSITE = process.env.WEBSITE || null;
 const WEB_URL = process.env.WEB_URL || null;
 const DEBUG = process.env.DEBUG || false;
+const API_KEY_TWO = process.env.API_KEY_TWO || null;
+const API_URL_TWO = process.env.API_URL_TWO || null;
+const CHANNEL_TWO = process.env.CHANNEL_TWO || null;
 
 const type = (function(global) {
     var cache = {};
@@ -155,6 +158,8 @@ async function getSendChannelByPost(obj) {
             return false;
         }
 
+        let channelName = await getSwitchChannel(0);
+
         let channelId = await getChannelId(CHANNEL);
 
         if(!Array.isArray(channelId) || channelId.length === 0) {
@@ -213,6 +218,23 @@ async function getChannelId(channelName) {
         if(DEBUG === true) { console.log(channelId, 213); } // check
 
     return channelId;
+}
+
+async function getSwitchChannel(n) {
+    if(CHANNEL_TWO === null) {
+        channelName = CHANNEL;
+    } else {
+        switch(n) {
+            case 0:
+                channelName = CHANNEL;
+            break;
+            case 1: 
+                channelName = CHANNEL_TWO;
+            break;
+            default:
+                channelName = CHANNEL;
+        }
+    }
 }
 
 async function objectPost2json(obj) {
