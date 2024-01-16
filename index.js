@@ -11,18 +11,17 @@ const { channel } = require('diagnostics_channel');
 
 require('dotenv').config();
 
-const API_KEY = process.env.API_KEY || null;
-const API_URL = process.env.API_URL || null;
+const API_KEY = JSON.parse(process.env.API_KEY) || null;
+const API_URL = JSON.parse(process.env.API_URL) || null;
+const CHANNEL = JSON.parse(process.env.CHANNEL) || null;
+const C_PARAM = JSON.parse(process.env.C_PARAM) || null;
+const WEBSITE = JSON.parse(process.env.WEBSITE) || null;
+const WEB_URL = JSON.parse(process.env.WEB_URL) || null;
 const HOST = process.env.HTTP_HOST || "127.0.0.1";
 const PORT = process.env.HTTP_PORT || 4003;
-const CHANNEL = process.env.CHANNEL || "Prueba";
 const DB_PATH = process.env.DB_PATH || null;
-const WEBSITE = process.env.WEBSITE || null;
-const WEB_URL = process.env.WEB_URL || null;
 const DEBUG = process.env.DEBUG || false;
-const API_KEY_TWO = process.env.API_KEY_TWO || null;
-const API_URL_TWO = process.env.API_URL_TWO || null;
-const CHANNEL_TWO = process.env.CHANNEL_TWO || null;
+
 
 const type = (function(global) {
     var cache = {};
@@ -126,8 +125,12 @@ client.initialize();
 async function getSendMsg() {
     try{
         let sendMessageData = false;
-        let data = await fetchDataFromApis();
-        let objResponse = getSendChannelByPost(data);
+        for (i in CHANNEL ) {
+            let channelName = await getSwitchChannel(i);
+            let n = await getKeyByChannelName(channelName)
+            let data = await fetchDataFromApis(n);
+            let objResponse = getSendChannelByPost(data, n);
+        }
 
         if(DEBUG === true) { console.log(data); }
             
@@ -143,7 +146,7 @@ async function getSendMsg() {
     }
 }
 
-async function getSendChannelByPost(obj) {
+async function getSendChannelByPost(obj, n) {
     try {
         let objResponse = await objectPost2json(obj);
         let sendChannelData = false;
@@ -158,9 +161,9 @@ async function getSendChannelByPost(obj) {
             return false;
         }
 
-        let channelName = await getSwitchChannel(0);
+        let channelName = await getSwitchChannel(n);
 
-        let channelId = await getChannelId(CHANNEL);
+        let channelId = await getChannelId(channelName);
 
         if(!Array.isArray(channelId) || channelId.length === 0) {
             return false;
@@ -171,9 +174,9 @@ async function getSendChannelByPost(obj) {
                 if(objReady.length != 0) {
                     let newId = [];
                     for (let i = 0; i < objReady.length; i++) {
-                        if(objReady[i].object.taxonomy.website == WEBSITE) {
+                        if(objReady[i].object.taxonomy.website == WEBSITE[n]) {
                             if(newId.length === 0 || !newId.includes(objReady[i].object.id)) {
-                                let newUrl = WEB_URL + objReady[i].object.canonicalUrl;
+                                let newUrl = WEB_URL[n] + objReady[i].object.canonicalUrl;
                                 let og = await fetchOGMetadata(newUrl);
                                 let image = await fetchImageFromUrl(og.ogImage);
                                 let media = new MessageMedia('image/jpeg', Buffer.from(image).toString('base64'));
@@ -221,20 +224,15 @@ async function getChannelId(channelName) {
 }
 
 async function getSwitchChannel(n) {
-    if(CHANNEL_TWO === null) {
-        channelName = CHANNEL;
-    } else {
-        switch(n) {
-            case 0:
-                channelName = CHANNEL;
-            break;
-            case 1: 
-                channelName = CHANNEL_TWO;
-            break;
-            default:
-                channelName = CHANNEL;
-        }
+    if(CHANNEL === null) {
+        return CHANNEL[0];
     }
+
+    return CHANNEL[n];
+}
+
+async function getKeyByChannelName(value) {
+    return Object.keys(CHANNEL).find(key => CHANNEL[key] === value);
 }
 
 async function objectPost2json(obj) {
@@ -439,8 +437,8 @@ async function fetchImageFromUrl(imageUrl) {
     }
 }
 
-async function fetchDataFromApis() {
-    const apiUrl = API_URL + '?token=' + API_KEY;
+async function fetchDataFromApis(n) {
+    const apiUrl = API_URL[n] + `?${C_PARAM[n]}=` + API_KEY[n];
     let data = null;
 
     try {
@@ -495,7 +493,7 @@ const server = http.createServer((req, res) => {
     const baseURL =  protocol + '://' + req.headers.host + '/';
     const reqUrl = new URL(req.url,baseURL);
 
-    if(reqUrl.pathname == "/msg" || reqUrl.pathname == "/channel" || reqUrl.pathname == "/channel/update") {
+    if(reqUrl.pathname == "/msg" || reqUrl.pathname == "/channel/update") {
         if(reqUrl.pathname == "/msg") {
             if (req.method == 'POST') {
                 let body = [];
@@ -517,32 +515,6 @@ const server = http.createServer((req, res) => {
                 if(result.match("CONNECTED")){
                     var q = url.parse(req.url, true).query;
                     res.end(JSON.stringify({ status: 200, message: 'Msg Success'}));
-                } else {
-                    console.error("Whatsapp Client not connected");
-                    res.end(JSON.stringify({ status: 500, message: 'Client State Null'}));
-                }
-            });
-        }
-
-        if(reqUrl.pathname == "/channel") {
-            if (req.method == 'POST') {
-                let body = [];
-                req.on('data', async (chunk) => {
-                    body.push(chunk);
-                }).on('end', async () => {
-                    body = Buffer.concat(body).toString();
-                    if(await getSendChannelByPost(body)) {
-                        res.end(JSON.stringify({ status: 200, message: 'Success'}));
-                    } else {
-                        res.end(JSON.stringify({ status: 500, message: 'Error'}));
-                    }
-                });
-            }
-
-            client.getState().then((result) => {
-                if(result.match("CONNECTED")){
-                    var q = url.parse(req.url, true).query;
-                    res.end(JSON.stringify({ status: 200, message: 'Checking Channel Success'}));
                 } else {
                     console.error("Whatsapp Client not connected");
                     res.end(JSON.stringify({ status: 500, message: 'Client State Null'}));
