@@ -125,12 +125,15 @@ client.initialize();
 async function getSendMsg() {
     try{
         let sendMessageData = false;
-        for (i in CHANNEL ) {
-            let channelName = await getSwitchChannel(i);
-            let n = await getKeyByChannelName(channelName)
-            let data = await fetchDataFromApis(n);
-            let objResponse = getSendChannelByPost(data, n);
+        let data = null;
+        let objResponse = false;
+
+        for (key in CHANNEL) {
+            data = await fetchDataFromApis(key);
+            objResponse = await getSendChannelByPost(data, key);
+            console.log(key);
         }
+        
 
         if(DEBUG === true) { console.log(data); }
             
@@ -148,7 +151,7 @@ async function getSendMsg() {
 
 async function getSendChannelByPost(obj, n) {
     try {
-        let objResponse = await objectPost2json(obj);
+        let objResponse = await objectPost2json(obj, n);
         let sendChannelData = false;
         //obj with information to publish
        
@@ -235,7 +238,7 @@ async function getKeyByChannelName(value) {
     return Object.keys(CHANNEL).find(key => CHANNEL[key] === value);
 }
 
-async function objectPost2json(obj) {
+async function objectPost2json(obj, n) {
     let body
     let copyData = [];
 
@@ -262,7 +265,7 @@ async function objectPost2json(obj) {
 
             dataObj = body.data[i];
             
-            if(Object.keys(dataObj).length == 15) {
+            if(Object.keys(dataObj).length == 15 || Object.keys(dataObj).length == 9) {
                 
                 if(dataObj.hasOwnProperty('canonical_url')) {
                     if(DEBUG === true) { console.log('object2json: evaluating'); }
@@ -282,16 +285,32 @@ async function objectPost2json(obj) {
                 bodyObj.object.id = new Date(dataObj.created_date).valueOf();
                 bodyObj.object.type                 = dataObj.type;
                 bodyObj.object.createdDate          = dataObj.created_date;
-                bodyObj.object.canonicalUrl         = dataObj.canonical_url;
-                bodyObj.object.canonicalUrlMobile   = dataObj.canonical_url_mobile;
-                bodyObj.object.headlines            = dataObj.headlines.basic;
-                bodyObj.object.description          = dataObj.description.basic;
-                bodyObj.object.taxonomy.category    = dataObj.taxonomy.primary_section.name;
-                bodyObj.object.taxonomy.website     = dataObj.taxonomy.primary_section._website;
-                bodyObj.object.taxonomy.section     = dataObj.taxonomy.primary_section.path;
+
+                if(dataObj.hasOwnProperty('taxonomy')) {
+                    if(dataObj.taxonomy.primary_section._website == WEBSITE[n]) {
+                        bodyObj.object.canonicalUrl         = dataObj.canonical_url;
+                        bodyObj.object.canonicalUrlMobile   = dataObj.canonical_url_mobile;
+                        bodyObj.object.headlines            = dataObj.headlines.basic;
+                        bodyObj.object.description          = dataObj.description.basic;
+                        bodyObj.object.taxonomy.category    = dataObj.taxonomy.primary_section.name;
+                        bodyObj.object.taxonomy.website     = dataObj.taxonomy.primary_section._website;
+                        bodyObj.object.taxonomy.section     = dataObj.taxonomy.primary_section.path;
+                    }
+                } else {
+                    if(dataObj.website == WEBSITE[n]) {
+                        bodyObj.object.canonicalUrl         = dataObj.canonical_url;
+                        bodyObj.object.canonicalUrlMobile   = null;
+                        bodyObj.object.headlines            = dataObj.title;
+                        bodyObj.object.description          = dataObj.description;
+                        bodyObj.object.taxonomy.category    = dataObj.category.name;
+                        bodyObj.object.taxonomy.website     = dataObj.website;
+                        bodyObj.object.taxonomy.section     = null;
+                    }
+                }
 
                 copyData.push(bodyObj);
             } else {
+                console.log(Object.keys(dataObj).length);
                 console.log("l: 275");
             }
         }
