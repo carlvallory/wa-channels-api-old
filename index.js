@@ -153,10 +153,14 @@ async function getSendChannelByPost(obj, n) {
     try {
         let objResponse = await objectPost2json(obj, n);
         let sendChannelData = false;
+        let objReady = false;
         //obj with information to publish
        
         let duplicateIds = await checkIds(objResponse);
-        let objReady = removeObjById(objResponse, duplicateIds);
+
+        if(duplicateIds != false) {
+            objReady = removeObjById(objResponse, duplicateIds);
+        }
 
         if(DEBUG === true) { console.log(duplicateIds,143); }
 
@@ -261,6 +265,12 @@ async function objectPost2json(obj, n) {
 
     try {
 
+        if (!body.data || !Array.isArray(body.data)) {
+            console.log("Error Occurred: ", "data is null or not an array");
+            console.log("l: 264");
+            return false;
+        }
+
         for (let i = 0; i < body.data.length; i++) {
 
             dataObj = body.data[i];
@@ -329,6 +339,13 @@ async function objectPost2json(obj, n) {
 }
 
 function getIds(obj) {
+
+    if (!Array.isArray(obj)) {
+        console.log("Error Occurred: obj is not an array");
+        console.log("l: 339");
+        return [];
+    }
+
     const ids = []
     obj.forEach(element => {
         ids.push(element.object.id)
@@ -394,6 +411,10 @@ function updateJson(storedIds, newIds) {
         throw new Error("Invalid input: storedIds and newIds must be arrays.");
     }
     return Array.from(new Set([...storedIds, ...newIds]));
+}
+
+async function moveJson(filepath) {
+    $emptyArray = await writeJson(filepath, []);
 }
 
 function getDuplicateId(storedIds, newIds) {
