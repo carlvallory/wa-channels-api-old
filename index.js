@@ -3,9 +3,15 @@ const { Client, NoAuth } = require('whatsapp-web.js');
 
 require('dotenv').config();
 
+const { fetchDataFromApis, getChannelId, getChannelById, getSendMessage } = require('./helpers');
+
 const CHANNEL = process.env.CHANNEL || "Prueba";
 const DEBUG = process.env.DEBUG || false;
 const wwebVersion = '2.2412.54';
+
+const API_KEY = process.env.API_KEY || null;
+const API_URL = process.env.API_URL || null;
+const C_PARAM = process.env.C_PARAM || null;
 
 const client = new Client(
     {
@@ -78,38 +84,20 @@ client.initialize().catch(error => {
 
 async function getSendMsg() {
     try {
-        let channelId = await getChannelId(CHANNEL); console.log(CHANNEL, channelId);
+        let channelId = await getChannelId(client, CHANNEL); console.log(CHANNEL, channelId);
         if(!Array.isArray(channelId) || channelId.length === 0) { return false; }
-        let channelPreviewData = await getChannelById(channelId[0]);
-        let sendChannelData = await client.sendMessage(channelId[0], "Hola");
+
+        let data = null;
+        //data = await fetchDataFromApis(API_URL, API_KEY, C_PARAM);
+
+        let channelPreviewData = await getChannelById(client, channelId[0]);
+        //let objResponse = await getSendChannelByPost(data);
+        let sendChannelData = await getSendMessage(client, channelId[0], "Hola");
         console.log(sendChannelData);
     } catch(e){
         console.log("Error Occurred: ", e);
         return false;
     }
-}
-
-async function getChannelById(channelName) {
-    let channel;
-    if (typeof client.getChannelById === 'function') {
-        try {
-            channel = await client.getChannelById(channelName, { getMetadata: true });
-        } catch (error) {
-            console.error('Error getting channel:', error);
-        }
-    }
-
-    return channel;
-}
-
-async function getChannelId(channelName) {
-    const channels = await client.getChannels();
-    const channelId = channels
-        .filter(channel => channel.name == channelName)
-        .map(channel => {
-            return channel.id._serialized
-        });
-    return channelId;
 }
 
 //console.log(await client.getWWebVersion());
