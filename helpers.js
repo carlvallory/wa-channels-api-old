@@ -23,7 +23,9 @@ async function fetchDataFromApis(apiUrl, apiKey, cParam) {
 }
 
 // CHECK FOR ERRORS
-async function getSendChannelByPost(obj) {
+async function getSendChannelByPost(client, obj) {
+    const { MessageMedia } = require('whatsapp-web.js');
+
     try {
         if(DEBUG === true) { console.log(obj, 148); }
         let objResponse = await objectPost2json(obj);
@@ -137,6 +139,54 @@ async function getSendMessage(client, channelName, messageText) {
     return message;
 }
 
+// PRIVATE FUNCTION
+async function fetchOGMetadata(url) {
+    try {
+        // Fetching the HTML content of the page
+        const { data } = await axios.get(url);
+        const cheerAxios = cheerio.load(data);
+
+        // Extracting the Open Graph metadata
+        const ogTitle = cheerAxios('meta[property="og:title"]').attr('content');
+        const ogDescription = cheerAxios('meta[property="og:description"]').attr('content');
+        const ogImage = cheerAxios('meta[property="og:image"]').attr('content');
+
+        return {
+            ogTitle,
+            ogDescription,
+            ogImage
+        };
+    } catch (error) {
+        console.error(`Error fetching Open Graph Data: ${error}`);
+        return {};
+    }
+}
+
+// PRIVATE FUNCTION
+async function fetchImageFromUrl(imageUrl) {
+    try {
+        // Fetching the HTML content of the page
+        const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+        const image = response.data;
+
+        return image;
+
+    } catch (error) {
+        console.error(`Error fetching Image: ${error}`);
+        return false;
+    }
+}
+
+// PRIVATE FUNCTION
+function truncateString(str, num) {
+    // If the length of str is less than or equal to num
+    // just return str--don't truncate it.
+    if (str.length <= num) {
+      return trimString(str);
+    }
+    // Return str truncated with '...' concatenated to the end of str.
+    return str.slice(0, num).trim().replace(/\s+/g, ' ') + '...';
+}
 
 // Export the functions
 module.exports = {

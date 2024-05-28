@@ -91,7 +91,7 @@ async function getSendMsg() {
         //data = await fetchDataFromApis(API_URL, API_KEY, C_PARAM);
 
         let channelPreviewData = await getChannelById(client, channelId[0]);
-        //let objResponse = await getSendChannelByPost(data);
+        //let objResponse = await getSendChannelByPost(client, data);
         let sendChannelData = await getSendMessage(client, channelId[0], "Hola");
         console.log(sendChannelData);
     } catch(e){
